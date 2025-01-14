@@ -9,6 +9,7 @@ import CameraView from '@/components/views/CameraView';
 import GraphView from '@/components/views/GraphView/GraphView';
 import ConfigView from '@/components/views/ConfigView/ConfigView';
 import TelemetryView from '@/components/views/TelemetryView';
+import HardwareView from '@/components/views/HardwareView';
 import FieldView from '@/components/views/FieldView/FieldView';
 
 const LayoutPreset = {
@@ -44,6 +45,9 @@ const LAYOUT_DETAILS: { [key in Values<typeof LayoutPreset>]: Layout } = {
         <Tile row={3} col={3}>
           <TelemetryView />
         </Tile>
+        <Tile row={4} col={3}>
+          <HardwareView />
+        </Tile>
       </TileGrid>
     ),
   },
@@ -65,6 +69,9 @@ const LAYOUT_DETAILS: { [key in Values<typeof LayoutPreset>]: Layout } = {
         </Tile>
         <Tile row={3} col={3}>
           <TelemetryView />
+        </Tile>
+        <Tile row={4} col={3}>
+          <HardwareView />
         </Tile>
       </TileGrid>
     ),
@@ -94,6 +101,9 @@ const LAYOUT_DETAILS: { [key in Values<typeof LayoutPreset>]: Layout } = {
         </Tile>
         <Tile row={2} col={2}>
           <TelemetryView />
+        </Tile>
+        <Tile row={3} col={2}>
+          <HardwareView />
         </Tile>
       </TileGrid>
     ),
