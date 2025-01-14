@@ -1,5 +1,7 @@
 package com.acmerobotics.dashboard;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -32,7 +34,9 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.util.ThreadPool;
 import com.qualcomm.robotcore.util.WebHandlerManager;
@@ -73,6 +77,10 @@ import org.firstinspires.ftc.robotserver.internal.webserver.MimeTypesUtil;
  * Main class for interacting with the instance.
  */
 public class FtcDashboard implements OpModeManagerImpl.Notifications {
+    private List<DcMotorEx> motors;
+    private List<Servo> servos;
+    private boolean enableDiagnostics = true;
+
     private static final String TAG = "FtcDashboard";
 
     private static final int DEFAULT_IMAGE_QUALITY = 50; // 0-100
@@ -1246,6 +1254,32 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         activeOpMode.with(o -> {
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.RUNNING;
+
+            if (enableDiagnostics) {
+                if (hardwareMap != null) {
+                    // Initialize motors and servos dynamically
+                    motors = new ArrayList<>(opMode.hardwareMap.getAll(DcMotorEx.class));
+                    servos = new ArrayList<>(opMode.hardwareMap.getAll(Servo.class));
+                    System.out.println("Motors initialized: " + motors.size());
+                    System.out.println("Servos initialized: " + servos.size());
+
+                    // Periodic updates
+                    new Thread(() -> {
+                        while (o.status == RobotStatus.OpModeStatus.RUNNING) {
+                            TelemetryPacket diagnosticsPacket = new TelemetryPacket();
+                            updateDiagnosticsTelemetry(diagnosticsPacket);
+                            sendTelemetryPacket(diagnosticsPacket);
+                            System.out.println("Updating diagnostics telemetry...");
+
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }
+                    }).start();
+                }
+            }
         });
     }
 
@@ -1280,5 +1314,37 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }).start();
 
         stopCameraStream();
+    }
+
+    private void updateDiagnosticsTelemetry(TelemetryPacket packet) {
+        if (hardwareMap != null) {
+            if (motors != null) {
+                for (int i = 0; i < motors.size(); i++) {
+                    DcMotorEx motor = motors.get(i);
+                    String name = hardwareMap.getNamesOf(motor).iterator().next();
+                    double power = motor.getPower();
+                    int position = motor.getCurrentPosition();
+
+                    packet.put("Motor " + i + " Name", name);
+                    packet.put("Motor " + i + " Power", power);
+                    packet.put("Motor " + i + " Encoder Position", position);
+                }
+            }
+
+            if (servos != null) {
+                for (int i = 0; i < servos.size(); i++) {
+                    Servo servo = servos.get(i);
+                    String name = hardwareMap.getNamesOf(servo).iterator().next();
+                    double position = servo.getPosition();
+
+                    packet.put("Servo " + i + " Name", name);
+                    packet.put("Servo " + i + " Position", position);
+                }
+            }
+        }
+    }
+
+    public void toggleDiagnostics(boolean enabled) {
+        enableDiagnostics = enabled;
     }
 }
