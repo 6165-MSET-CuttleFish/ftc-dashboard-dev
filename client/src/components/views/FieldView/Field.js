@@ -1,5 +1,9 @@
 import { cloneDeep } from 'lodash';
 
+
+const SAVE_IGNORE = ["alpha", "image"]; //change this based on what you're displaying
+
+
 // align coordinate to the nearest pixel, offset by a half pixel
 // this helps with drawing thin lines; e.g., if a line of width 1px
 // is drawn on an integer coordinate, it will be 2px wide
@@ -64,11 +68,12 @@ function loadImage(src) {
 // all dimensions in this file are *CSS* pixels unless otherwise stated
 const DEFAULT_OPTIONS = {
   padding: 15,
-  fieldSize: 12 * 12, // inches
+  fieldSize: 12 * 12, // feet
   splineSamples: 250,
   gridLineWidth: 1, // device pixels
   gridLineColor: 'rgb(120, 120, 120)',
 };
+
 
 export default class Field {
   constructor(canvas, options) {
@@ -81,6 +86,109 @@ export default class Field {
     this.overlay = {
       ops: [],
     };
+    this.fileOutput = "";
+    this.startTime = Date.now()
+    this.replay = "";
+  }
+  getData(){
+    return(this.fileOutput);
+  }
+
+  clearData(time){
+      this.fileOutput = "";
+      this.startTime = 0;
+    }
+
+  addReplay(files){
+    this.replay = ""
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const fileContent = e.target.result; // This will contain the content of the file
+  //         console.log(file.name, fileContent);
+          this.replay = (this.replay || "") + "\n" + fileContent;
+        };
+
+        reader.readAsText(file);
+      }
+  }
+
+
+  loadReplaysWithField(width, height, fieldSize, fileContent, currTime) {
+    const lines = fileContent.split('\n');
+    let ops = [];
+    lines.forEach((line, index) => {
+        const timestamp = parseInt(line.split('@')[0]);
+        if (Math.abs(timestamp - currTime) < 40) {
+            ops.push(JSON.parse(line.split('@')[1]));
+//            console.error(ops);
+
+            }
+
+    });
+//    console.log("Operations to render:", this.overlay.ops);  //debug
+//    console.log("Replay Operations to render:", ops); //debug
+    //ops = ops.concat(this.overlay.ops);
+    this.renderField(
+      (width - fieldSize) / 2,
+      (height - fieldSize) / 2,
+      fieldSize,
+      fieldSize,
+      this.overlay.ops,
+      ops,
+      currTime,
+    );
+
+  }
+
+  saveToFile(filename) {
+    const now = new Date();
+
+    const month = now.getMonth() + 1; // getMonth() is 0-indexed, so we add 1
+    const day = now.getDate();
+    const year = now.getFullYear().toString().slice(-2); // Get last 2 digits of the year
+
+    const formattedDate = `${month}_${day}_${year}`;
+
+    const hours = now.getHours().toString().padStart(2, '0');   // Get hours in 24-hour format
+    const minutes = now.getMinutes().toString().padStart(2, '0'); // Get minutes
+    const seconds = now.getSeconds().toString().padStart(2, '0'); // Get seconds
+
+    const formattedTime = `${hours}_${minutes}_${seconds}`;
+
+    filename = "field_replay_" + formattedDate + "_" + formattedTime;
+
+
+    const data = this.getData(); // this.fileOutput // also this.fileOutput doesnt work correctly it should add to a string not like overwrite but whatever
+    let newData = "";
+    let initialTime = parseInt(data.split("\n")[0].split('@')[0]);
+    data.split("\n").forEach((line, index) => {
+
+        const timestamp = parseInt(line.split('@')[0]);
+        const newTime = timestamp - initialTime;
+        newData += newTime + "@" + line.split('@')[1] + "\n";
+    });
+
+    this.clearData();
+
+    // Create a Blob with the data
+    const blob = new Blob([newData], { type: 'text/plain' });
+
+    // Create an anchor element and set its href to the Blob URL
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+
+    // Programmatically click the anchor element to trigger the download
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   setOverlay(overlay) {
@@ -103,17 +211,24 @@ export default class Field {
       fieldsToRender.push(this);
     }
 
-    this.renderField(
-      (width - fieldSize) / 2,
-      (height - fieldSize) / 2,
-      fieldSize,
-      fieldSize,
-    );
+
+    let elapsedTime = Date.now() - this.startTime;
+
+
+//    this.renderField(
+//          (width - fieldSize) / 2,
+//          (height - fieldSize) / 2,
+//          fieldSize,
+//          fieldSize,
+//          this.overlay.ops,
+//          [],
+//          elapsedTime,
+//        );
+    this.loadReplaysWithField(width, height, fieldSize, this.replay, elapsedTime);
   }
 
-  renderField(x, y, width, height) {
+  renderField(x, y, width, height, ops, replayops, elapsedTime) {
     const o = this.options;
-
     this.ctx.save();
 
     this.ctx.translate(x, y);
@@ -149,7 +264,12 @@ export default class Field {
 
     this.ctx.lineCap = 'butt';
 
-    for (let op of this.overlay.ops) {
+    for (let op of ops) {
+    //console.error( op.type); //debug
+      if (!(SAVE_IGNORE.includes(op.type))){
+        this.fileOutput = (this.fileOutput || '') + (elapsedTime) + "@" + JSON.stringify(op) + '\n'; //can change @ char if needed
+      }
+
       switch (op.type) {
         case 'scale':
           userScaleX = op.scaleX;
@@ -344,7 +464,204 @@ export default class Field {
           throw new Error(`unknown operation: ${op.type}`);
       }
     }
+    for (let op of replayops) {
+
+          switch (op.type) {
+            case 'scale':
+              userScaleX = op.scaleX;
+              userScaleY = op.scaleY;
+              setUserTransform();
+              break;
+            case 'rotation':
+              userRotation = op.rotation;
+              setUserTransform();
+              break;
+            case 'translate':
+              userOriginX = op.x;
+              userOriginY = op.y;
+              setUserTransform();
+              break;
+            case 'fill':
+              this.ctx.fillStyle = op.color;
+              break;
+            case 'stroke':
+              this.ctx.strokeStyle = op.color;
+              break;
+            case 'strokeWidth':
+              this.ctx.lineWidth = op.width;
+              break;
+            case 'circle':
+              this.ctx.beginPath();
+              this.ctx.arc(op.x, op.y, op.radius, 0, 2 * Math.PI);
+
+              if (op.stroke) {
+                this.ctx.stroke();
+              } else {
+                this.ctx.fill();
+              }
+              break;
+            case 'polygon': {
+              this.ctx.beginPath();
+              const { xPoints, yPoints, stroke } = op;
+              this.ctx.fineMoveTo(xPoints[0], yPoints[0]);
+              for (let i = 1; i < xPoints.length; i++) {
+                this.ctx.fineLineTo(xPoints[i], yPoints[i]);
+              }
+              this.ctx.closePath();
+
+              if (stroke) {
+                this.ctx.stroke();
+              } else {
+                this.ctx.fill();
+              }
+              break;
+            }
+            case 'polyline': {
+              this.ctx.beginPath();
+              const { xPoints, yPoints } = op;
+              this.ctx.fineMoveTo(xPoints[0], yPoints[0]);
+              for (let i = 1; i < xPoints.length; i++) {
+                this.ctx.fineLineTo(xPoints[i], yPoints[i]);
+              }
+              this.ctx.stroke();
+              break;
+            }
+            case 'spline': {
+              this.ctx.beginPath();
+              const { ax, bx, cx, dx, ex, fx, ay, by, cy, dy, ey, fy } = op;
+              this.ctx.fineMoveTo(fx, fy);
+              for (let i = 0; i <= o.splineSamples; i++) {
+                const t = i / o.splineSamples;
+                const sx =
+                  (ax * t + bx) * (t * t * t * t) +
+                  cx * (t * t * t) +
+                  dx * (t * t) +
+                  ex * t +
+                  fx;
+                const sy =
+                  (ay * t + by) * (t * t * t * t) +
+                  cy * (t * t * t) +
+                  dy * (t * t) +
+                  ey * t +
+                  fy;
+
+                this.ctx.lineTo(sx, sy);
+              }
+              this.ctx.stroke();
+              break;
+            }
+            case 'image': {
+              const image = loadImage(op.path);
+
+              this.ctx.save();
+              if (op.usePageFrame) {
+                this.ctx.setTransform(pageTransform);
+              }
+
+              this.ctx.translate(op.x, op.y);
+
+              // Flipped to match text behavior.
+              if (!op.usePageFrame) {
+                this.ctx.scale(1, -1);
+              }
+
+              this.ctx.rotate(op.theta);
+              this.ctx.drawImage(
+                image,
+                -op.pivotX,
+                -op.pivotY,
+                op.width,
+                op.height,
+              );
+
+              this.ctx.restore();
+              break;
+            }
+            case 'text': {
+              this.ctx.save();
+
+              this.ctx.font = op.font;
+              if (op.usePageFrame) {
+                this.ctx.setTransform(pageTransform);
+              }
+
+              this.ctx.translate(op.x, op.y);
+
+              // I dislike this conceptually, but it makes things easier for users.
+              if (!op.usePageFrame) {
+                this.ctx.scale(1, -1);
+              }
+
+              this.ctx.rotate(op.theta);
+              if (op.stroke) {
+                this.ctx.strokeText(op.text, 0, 0);
+              } else {
+                this.ctx.fillText(op.text, 0, 0);
+              }
+
+              this.ctx.restore();
+              break;
+            }
+            case 'grid': {
+              this.ctx.save();
+              if (op.usePageFrame) {
+                this.ctx.setTransform(pageTransform);
+              }
+
+              this.ctx.translate(op.x, op.y);
+
+              // Flipped to match text behavior.
+              if (!op.usePageFrame) {
+                this.ctx.scale(1, -1);
+              }
+
+              this.ctx.rotate(op.theta);
+              this.ctx.translate(op.X, op.Y);
+
+              this.ctx.strokeStyle = this.options.gridLineColor;
+
+              const horSpacing = op.width / (op.numTicksX - 1);
+              const vertSpacing = op.height / (op.numTicksY - 1);
+
+              const { scalingX, scalingY } = this.ctx.getScalingFactors();
+
+              // TODO: is this calculation valid now that rotation can be set?
+              this.ctx.lineWidth =
+                this.options.gridLineWidth / (scalingY * devicePixelRatio);
+
+              for (let i = 0; i < op.numTicksX; i++) {
+                const lineX = -op.pivotX + horSpacing * i;
+                this.ctx.beginPath();
+                this.ctx.fineMoveTo(lineX, -op.pivotY);
+                this.ctx.fineLineTo(lineX, -op.pivotY + op.height);
+                this.ctx.stroke();
+              }
+
+              this.ctx.lineWidth =
+                this.options.gridLineWidth / (scalingX * devicePixelRatio);
+
+              for (let i = 0; i < op.numTicksY; i++) {
+                const lineY = -op.pivotY + vertSpacing * i;
+                this.ctx.beginPath();
+                this.ctx.fineMoveTo(-op.pivotX, lineY);
+                this.ctx.fineLineTo(-op.pivotX + op.width, lineY);
+                this.ctx.stroke();
+              }
+
+              this.ctx.restore();
+
+              break;
+            }
+            case 'alpha': {
+              this.ctx.globalAlpha = op.alpha;
+              break;
+            }
+            default:
+              throw new Error(`unknown operation: ${op.type}`);
+          }
+        }
 
     this.ctx.restore();
   }
 }
+
