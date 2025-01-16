@@ -1,7 +1,5 @@
 package com.acmerobotics.dashboard;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -1256,20 +1254,18 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             o.status = RobotStatus.OpModeStatus.RUNNING;
 
             if (enableDiagnostics) {
-                if (hardwareMap != null) {
+                if (o.opMode.hardwareMap != null) {
                     // Initialize motors and servos dynamically
-                    motors = new ArrayList<>(opMode.hardwareMap.getAll(DcMotorEx.class));
-                    servos = new ArrayList<>(opMode.hardwareMap.getAll(Servo.class));
-                    System.out.println("Motors initialized: " + motors.size());
-                    System.out.println("Servos initialized: " + servos.size());
+                    motors = new ArrayList<>(o.opMode.hardwareMap.getAll(DcMotorEx.class));
+                    servos = new ArrayList<>(o.opMode.hardwareMap.getAll(Servo.class));
 
                     // Periodic updates
                     new Thread(() -> {
-                        while (o.status == RobotStatus.OpModeStatus.RUNNING) {
+                        while (o.status == RobotStatus.OpModeStatus.RUNNING && !Thread.currentThread().isInterrupted()) {
                             TelemetryPacket diagnosticsPacket = new TelemetryPacket();
-                            updateDiagnosticsTelemetry(diagnosticsPacket);
+                            updateDiagnosticsTelemetry(diagnosticsPacket, o.opMode);
                             sendTelemetryPacket(diagnosticsPacket);
-                            System.out.println("Updating diagnostics telemetry...");
+                            motors.get(0).setPower(1);
 
                             try {
                                 Thread.sleep(100);
@@ -1316,12 +1312,12 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         stopCameraStream();
     }
 
-    private void updateDiagnosticsTelemetry(TelemetryPacket packet) {
-        if (hardwareMap != null) {
+    private void updateDiagnosticsTelemetry(TelemetryPacket packet, OpMode opMode) {
+        if (opMode.hardwareMap != null) {
             if (motors != null) {
                 for (int i = 0; i < motors.size(); i++) {
                     DcMotorEx motor = motors.get(i);
-                    String name = hardwareMap.getNamesOf(motor).iterator().next();
+                    String name = opMode.hardwareMap.getNamesOf(motor).iterator().next();
                     double power = motor.getPower();
                     int position = motor.getCurrentPosition();
 
@@ -1334,7 +1330,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             if (servos != null) {
                 for (int i = 0; i < servos.size(); i++) {
                     Servo servo = servos.get(i);
-                    String name = hardwareMap.getNamesOf(servo).iterator().next();
+                    String name = opMode.hardwareMap.getNamesOf(servo).iterator().next();
                     double position = servo.getPosition();
 
                     packet.put("Servo " + i + " Name", name);
