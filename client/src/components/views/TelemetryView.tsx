@@ -45,12 +45,18 @@ const TelemetryView = ({
     );
   }, [packets]);
 
-  const telemetryLines = Object.keys(data).map((key) => (
-    <span
-      key={key}
-      dangerouslySetInnerHTML={{ __html: `${key}: ${data[key]}<br />` }}
-    />
-  ));
+  const telemetryLines = Object.keys(data).map((key) => {
+    if (!key.includes("hardwareViewKey-7348927289475374384783")) {
+      return (
+        <span
+          key={key}
+          dangerouslySetInnerHTML={{ __html: `${key}: ${data[key]}<br />` }}
+        />
+      );
+    }
+
+    return null;
+  });
 
   const telemetryLog = log.map((line, i) => (
     <span key={i} dangerouslySetInnerHTML={{ __html: `${line}<br />` }} />

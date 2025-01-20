@@ -79,6 +79,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     private List<Servo> servos;
     private boolean enableDiagnostics = true;
 
+    private String hardwareKey = "hardwareViewKey-7348927289475374384783";
+
     private static final String TAG = "FtcDashboard";
 
     private static final int DEFAULT_IMAGE_QUALITY = 50; // 0-100
@@ -1320,9 +1322,9 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     double power = motor.getPower();
                     int position = motor.getCurrentPosition();
 
-                    packet.put("Motor " + name + " Name", name);
-                    packet.put("Motor " + name + " Power", power);
-                    packet.put("Motor " + name + " Encoder Position", position);
+                    packet.put(hardwareKey + "Motor " + name + " Name", name);
+                    packet.put(hardwareKey + "Motor " + name + " Power", power);
+                    packet.put(hardwareKey + "Motor " + name + " Encoder Position", position);
                 }
             }
 
@@ -1331,8 +1333,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     String name = opMode.hardwareMap.getNamesOf(servo).iterator().next();
                     double position = servo.getPosition();
 
-                    packet.put("Servo " + name + " Name", name);
-                    packet.put("Servo " + name + " Position", position);
+                    packet.put(hardwareKey + "Servo " + name + " Name", name);
+                    packet.put(hardwareKey + "Servo " + name + " Position", position);
                 }
             }
         }

@@ -45,12 +45,20 @@ const HardwareView = ({
     );
   }, [packets]);
 
-  const hardwareLines = Object.keys(data).map((key) => (
-    <span
-      key={key}
-      dangerouslySetInnerHTML={{ __html: `${key}: ${data[key]}<br />` }}
-    />
-  ));
+  const hardwareLines = Object.keys(data).map((key) => {
+    if (key.includes("hardwareViewKey-7348927289475374384783")) {
+      const cleanedKey = key.replace("hardwareViewKey-7348927289475374384783", '').trim();
+
+      return (
+        <span
+          key={key}
+          dangerouslySetInnerHTML={{ __html: `${cleanedKey}: ${data[key]}<br />` }}
+        />
+      );
+    }
+
+    return null;
+  });
 
   const hardwareLog = log.map((line, i) => (
     <span key={i} dangerouslySetInnerHTML={{ __html: `${line}<br />` }} />
