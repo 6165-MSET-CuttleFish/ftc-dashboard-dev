@@ -45,7 +45,7 @@ const LAYOUT_DETAILS: { [key in Values<typeof LayoutPreset>]: Layout } = {
         <Tile row={3} col={3}>
           <TelemetryView />
         </Tile>
-        <Tile row={3} col={4}>
+        <Tile row={3} col={1}>
           <HardwareView />
         </Tile>
       </TileGrid>
@@ -69,9 +69,6 @@ const LAYOUT_DETAILS: { [key in Values<typeof LayoutPreset>]: Layout } = {
         </Tile>
         <Tile row={3} col={3}>
           <TelemetryView />
-        </Tile>
-        <Tile row={3} col={4}>
-          <HardwareView />
         </Tile>
       </TileGrid>
     ),
@@ -101,9 +98,6 @@ const LAYOUT_DETAILS: { [key in Values<typeof LayoutPreset>]: Layout } = {
         </Tile>
         <Tile row={2} col={2}>
           <TelemetryView />
-        </Tile>
-        <Tile row={2} col={3}>
-          <HardwareView />
         </Tile>
       </TileGrid>
     ),
