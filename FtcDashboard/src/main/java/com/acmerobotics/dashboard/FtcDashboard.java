@@ -1315,26 +1315,24 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     private void updateDiagnosticsTelemetry(TelemetryPacket packet, OpMode opMode) {
         if (opMode.hardwareMap != null) {
             if (motors != null) {
-                for (int i = 0; i < motors.size(); i++) {
-                    DcMotorEx motor = motors.get(i);
+                for (DcMotorEx motor : motors) {
                     String name = opMode.hardwareMap.getNamesOf(motor).iterator().next();
                     double power = motor.getPower();
                     int position = motor.getCurrentPosition();
 
-                    packet.put("Motor " + i + " Name", name);
-                    packet.put("Motor " + i + " Power", power);
-                    packet.put("Motor " + i + " Encoder Position", position);
+                    packet.put("Motor " + name + " Name", name);
+                    packet.put("Motor " + name + " Power", power);
+                    packet.put("Motor " + name + " Encoder Position", position);
                 }
             }
 
             if (servos != null) {
-                for (int i = 0; i < servos.size(); i++) {
-                    Servo servo = servos.get(i);
+                for (Servo servo : servos) {
                     String name = opMode.hardwareMap.getNamesOf(servo).iterator().next();
                     double position = servo.getPosition();
 
-                    packet.put("Servo " + i + " Name", name);
-                    packet.put("Servo " + i + " Position", position);
+                    packet.put("Servo " + name + " Name", name);
+                    packet.put("Servo " + name + " Position", position);
                 }
             }
         }
