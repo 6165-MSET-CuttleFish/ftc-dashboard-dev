@@ -62,6 +62,7 @@ import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.function.Consumer;
 import org.firstinspires.ftc.robotcore.external.function.Continuation;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit;
 import org.firstinspires.ftc.robotcore.external.stream.CameraStreamSource;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
@@ -1267,7 +1268,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                             TelemetryPacket diagnosticsPacket = new TelemetryPacket();
                             updateDiagnosticsTelemetry(diagnosticsPacket, o.opMode);
                             sendTelemetryPacket(diagnosticsPacket);
-                            motors.get(0).setPower(1);
 
                             try {
                                 Thread.sleep(100);
@@ -1321,10 +1321,13 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     String name = opMode.hardwareMap.getNamesOf(motor).iterator().next();
                     double power = motor.getPower();
                     int position = motor.getCurrentPosition();
+                    double current = motor.getCurrent(CurrentUnit.MILLIAMPS);
+                    int port = motor.getPortNumber();
 
-                    packet.put(hardwareKey + "Motor " + name + " Name", name);
                     packet.put(hardwareKey + "Motor " + name + " Power", power);
                     packet.put(hardwareKey + "Motor " + name + " Encoder Position", position);
+                    packet.put(hardwareKey + "Motor " + name + " Current Draw", current);
+                    packet.put(hardwareKey + "Motor " + name + " Port", port);
                 }
             }
 
@@ -1333,7 +1336,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     String name = opMode.hardwareMap.getNamesOf(servo).iterator().next();
                     double position = servo.getPosition();
 
-                    packet.put(hardwareKey + "Servo " + name + " Name", name);
                     packet.put(hardwareKey + "Servo " + name + " Position", position);
                 }
             }
