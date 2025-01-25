@@ -1342,6 +1342,40 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }
     }
 
+    public void setMotorPower(String motorName, double power) {
+        if (motors != null) {
+            for (DcMotorEx motor : motors) {
+                if (motorName.equals(motor.getDeviceName())) {
+                    motor.setPower(power);
+                    break;
+                }
+            }
+        }
+    }
+
+    public void setMotorPosition(String motorName, int position) {
+        if (motors != null) {
+            for (DcMotorEx motor : motors) {
+                if (motorName.equals(motor.getDeviceName())) {
+                    motor.setTargetPosition(position);
+                    motor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+                    break;
+                }
+            }
+        }
+    }
+
+    public void setServoPosition(String servoName, double position) {
+        if (servos != null) {
+            for (Servo servo : servos) {
+                if (servoName.equals(servo.getDeviceName())) {
+                    servo.setPosition(position);
+                    break;
+                }
+            }
+        }
+    }
+
     public void toggleDiagnostics(boolean enabled) {
         enableDiagnostics = enabled;
     }
