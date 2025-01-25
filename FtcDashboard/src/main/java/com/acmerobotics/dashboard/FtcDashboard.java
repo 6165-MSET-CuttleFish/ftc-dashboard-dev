@@ -32,7 +32,9 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.util.ThreadPool;
 import com.qualcomm.robotcore.util.WebHandlerManager;
@@ -60,6 +62,7 @@ import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.function.Consumer;
 import org.firstinspires.ftc.robotcore.external.function.Continuation;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit;
 import org.firstinspires.ftc.robotcore.external.stream.CameraStreamSource;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
@@ -73,6 +76,12 @@ import org.firstinspires.ftc.robotserver.internal.webserver.MimeTypesUtil;
  * Main class for interacting with the instance.
  */
 public class FtcDashboard implements OpModeManagerImpl.Notifications {
+    private List<DcMotorEx> motors;
+    private List<Servo> servos;
+    private boolean enableDiagnostics = true;
+
+    private String hardwareKey = "hardwareViewKey-7348927289475374384783";
+
     private static final String TAG = "FtcDashboard";
 
     private static final int DEFAULT_IMAGE_QUALITY = 50; // 0-100
@@ -1246,6 +1255,29 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         activeOpMode.with(o -> {
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.RUNNING;
+
+            if (enableDiagnostics) {
+                if (o.opMode.hardwareMap != null) {
+                    // Initialize motors and servos dynamically
+                    motors = new ArrayList<>(o.opMode.hardwareMap.getAll(DcMotorEx.class));
+                    servos = new ArrayList<>(o.opMode.hardwareMap.getAll(Servo.class));
+
+                    // Periodic updates
+                    new Thread(() -> {
+                        while (o.status == RobotStatus.OpModeStatus.RUNNING && !Thread.currentThread().isInterrupted()) {
+                            TelemetryPacket diagnosticsPacket = new TelemetryPacket();
+                            updateDiagnosticsTelemetry(diagnosticsPacket, o.opMode);
+                            sendTelemetryPacket(diagnosticsPacket);
+
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }
+                    }).start();
+                }
+            }
         });
     }
 
@@ -1280,5 +1312,71 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }).start();
 
         stopCameraStream();
+    }
+
+    private void updateDiagnosticsTelemetry(TelemetryPacket packet, OpMode opMode) {
+        if (opMode.hardwareMap != null) {
+            if (motors != null) {
+                for (DcMotorEx motor : motors) {
+                    String name = opMode.hardwareMap.getNamesOf(motor).iterator().next();
+                    double power = motor.getPower();
+                    int position = motor.getCurrentPosition();
+                    double current = motor.getCurrent(CurrentUnit.MILLIAMPS);
+                    int port = motor.getPortNumber();
+
+                    packet.put(hardwareKey + "Motor " + name + " Power", power);
+                    packet.put(hardwareKey + "Motor " + name + " Encoder Position", position);
+                    packet.put(hardwareKey + "Motor " + name + " Current Draw", current);
+                    packet.put(hardwareKey + "Motor " + name + " Port", port);
+                }
+            }
+
+            if (servos != null) {
+                for (Servo servo : servos) {
+                    String name = opMode.hardwareMap.getNamesOf(servo).iterator().next();
+                    double position = servo.getPosition();
+
+                    packet.put(hardwareKey + "Servo " + name + " Position", position);
+                }
+            }
+        }
+    }
+
+    public void setMotorPower(String motorName, double power) {
+        if (motors != null) {
+            for (DcMotorEx motor : motors) {
+                if (motorName.equals(motor.getDeviceName())) {
+                    motor.setPower(power);
+                    break;
+                }
+            }
+        }
+    }
+
+    public void setMotorPosition(String motorName, int position) {
+        if (motors != null) {
+            for (DcMotorEx motor : motors) {
+                if (motorName.equals(motor.getDeviceName())) {
+                    motor.setTargetPosition(position);
+                    motor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+                    break;
+                }
+            }
+        }
+    }
+
+    public void setServoPosition(String servoName, double position) {
+        if (servos != null) {
+            for (Servo servo : servos) {
+                if (servoName.equals(servo.getDeviceName())) {
+                    servo.setPosition(position);
+                    break;
+                }
+            }
+        }
+    }
+
+    public void toggleDiagnostics(boolean enabled) {
+        enableDiagnostics = enabled;
     }
 }

@@ -9,12 +9,12 @@ import BaseView, {
 } from './BaseView';
 import { RootState } from '@/store/reducers';
 
-type TelemetryViewProps = BaseViewProps & BaseViewHeadingProps;
+type HardwareViewProps = BaseViewProps & BaseViewHeadingProps;
 
-const TelemetryView = ({
+const HardwareView = ({
   isDraggable = false,
   isUnlocked = false,
-}: TelemetryViewProps) => {
+}: HardwareViewProps) => {
   const [log, setLog] = useState<string[]>([]);
   const [data, setData] = useState<{ [key: string]: string }>({});
 
@@ -45,12 +45,14 @@ const TelemetryView = ({
     );
   }, [packets]);
 
-  const telemetryLines = Object.keys(data).map((key) => {
-    if (!key.includes("hardwareViewKey-7348927289475374384783")) {
+  const hardwareLines = Object.keys(data).map((key) => {
+    if (key.includes("hardwareViewKey-7348927289475374384783")) {
+      const cleanedKey = key.replace("hardwareViewKey-7348927289475374384783", '').trim();
+
       return (
         <span
           key={key}
-          dangerouslySetInnerHTML={{ __html: `${key}: ${data[key]}<br />` }}
+          dangerouslySetInnerHTML={{ __html: `${cleanedKey}: ${data[key]}<br />` }}
         />
       );
     }
@@ -58,19 +60,19 @@ const TelemetryView = ({
     return null;
   });
 
-  const telemetryLog = log.map((line, i) => (
+  const hardwareLog = log.map((line, i) => (
     <span key={i} dangerouslySetInnerHTML={{ __html: `${line}<br />` }} />
   ));
 
   return (
     <BaseView isUnlocked={isUnlocked}>
-      <BaseViewHeading isDraggable={isDraggable}>Telemetry</BaseViewHeading>
+      <BaseViewHeading isDraggable={isDraggable}>Hardware</BaseViewHeading>
       <BaseViewBody>
-        <p>{telemetryLines}</p>
-        <p>{telemetryLog}</p>
+        <p>{hardwareLines}</p>
+        <p>{hardwareLog}</p>
       </BaseViewBody>
     </BaseView>
   );
 };
 
-export default TelemetryView;
+export default HardwareView;
