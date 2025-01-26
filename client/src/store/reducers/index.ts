@@ -9,11 +9,13 @@ import cameraReducer from './camera';
 import settingsReducer from './settings';
 import gamepadReducer from './gamepad';
 import { createDispatchHook } from 'react-redux';
+import hardwareReducer from './hardware';
 
 const rootReducer = combineReducers({
   telemetry: telemetryReducer,
   socket: socketReducer,
   config: configReducer,
+  hardware: hardwareReducer,
   status: statusReducer,
   camera: cameraReducer,
   settings: settingsReducer,
