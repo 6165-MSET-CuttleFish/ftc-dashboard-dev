@@ -1,74 +1,60 @@
-export type HardwareVar = CustomVar | BasicVar;
-export type HardwareVarState = CustomVarState | BasicVarState;
+export interface HardwareVar {
+    __type: 'custom'; // 'motor' or 'servo'
+    __value: Record<string, HardwareVar>; // Numeric or nested
+}
 
-export type CustomVar = {
-  __type: 'custom';
-  __value: Record<string, HardwareVar> | null;
-};
+export interface HardwareVarState {
+    __type: 'custom';
+    __value: Record<string, HardwareVar>;
+}
 
-export type CustomVarState = {
-  __type: 'custom';
-  __value: Record<string, HardwareVarState> | null;
-};
+export interface HardwareState {
+    hardwareRoot: HardwareVarState;
+}
 
-export type BasicVar =
-  | {
-      __type: 'enum';
-      // only string is actualy present, but this helps treat vars uniformly
-      __value: boolean | number | string | null;
-      __enumClass: string;
-      __enumValues: string[];
-    }
-  | {
-      __type: 'boolean' | 'int' | 'long' | 'float' | 'double' | 'string';
-      __value: boolean | number | string | null;
+export interface PreloadHardwareAction {
+    type: 'PRELOAD_HARDWARE';
+    payload: {
+        hardwareRoot: HardwareVarState;
     };
+}
 
-export type BasicVarState = (
-  | {
-      __type: 'enum';
-      __value: boolean | number | string | null;
-      __newValue: boolean | number | string | null;
-      __enumClass: string;
-      __enumValues: string[];
-    }
-  | {
-      __type: 'boolean' | 'int' | 'long' | 'float' | 'double' | 'string';
-      __value: boolean | number | string | null;
-      __newValue: boolean | number | string | null;
-    }
-) & {
-  __valid: boolean;
-};
+export interface GetHardwareAction {
+    type: 'GET_HARDWARE';
+    payload: {
+        hardwareRoot: HardwareVarState;
+    };
+}
 
-export type HardwareState = {
-  hardwareRoot: HardwareVarState;
-};
 
-export type ReceiveHardwareAction = {
-  type: 'RECEIVE_HARDWARE';
-  hardwareRoot: HardwareVar;
-};
+export interface ReceiveHardwareAction {
+    type: 'RECEIVE_HARDWARE';
+    payload: {
+        hardwareRoot: HardwareVarState;
+    };
+}
 
-export type GetHardwareAction = {
-  type: 'GET_HARDWARE';
-};
+export interface UpdateHardwareAction {
+    type: 'UPDATE_HARDWARE';
+    payload: {
+        hardwareRoot: HardwareVarState;
+    };
+}
 
-export type UpdateHardwareAction = {
-  type: 'UPDATE_HARDWARE';
-  hardwareRoot: HardwareVarState;
-};
+export interface SaveHardwareAction {
+    type: 'SAVE_HARDWARE';
+    payload: {
+        hardwareDiff: HardwareVarState;
+    };
+}
 
-export type SaveHardwareAction = {
-  type: 'SAVE_HARDWARE';
-  hardwareDiff: HardwareVar;
-};
-export type RefreshHardwareAction = {
-  type: 'REFRESH_HARDWARE';
-};
+export interface RefreshHardwareAction {
+    type: 'REFRESH_HARDWARE';
+}
 
-export type HardwareAction =
-    | { type: 'GET_HARDWARE' }
-    | { type: 'UPDATE_HARDWARE'; payload: { type: 'motors' | 'servos'; name: string; value: number } }
-    | { type: 'RECEIVE_HARDWARE'; payload: { hardwareRoot: Record<string, any> } };
-
+export type HardwareActions =
+    | PreloadHardwareAction
+    | ReceiveHardwareAction
+    | UpdateHardwareAction
+    | SaveHardwareAction
+    | RefreshHardwareAction;

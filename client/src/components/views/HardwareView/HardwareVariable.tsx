@@ -1,29 +1,21 @@
 import { Component, ReactNode } from 'react';
 import clsx from 'clsx';
-
-import BasicVariable from './BasicVariable';
-
 import { ReactComponent as ExpandedMoreIcon } from '@/assets/icons/expand_more.svg';
-import {
-  HardwareVar,
-  HardwareVarState,
-  CustomVar,
-  CustomVarState,
-} from '@/store/types/hardware';
+import {HardwareVar, HardwareVarState} from "@/store/types/hardware";
 
 interface Props {
   name: string;
   path: string;
-  state: CustomVarState;
-  onChange: (state: CustomVarState) => void;
-  onSave: (variable: CustomVar) => void;
+  state: HardwareVarState;
+  onChange: (state: HardwareVarState) => void;
+  onSave: (variable: HardwareVar) => void;
 }
 
 interface State {
   expanded: boolean;
 }
 
-class CustomVariable extends Component<Props, State> {
+class HardwareVariable extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -112,28 +104,17 @@ class CustomVariable extends Component<Props, State> {
       };
 
       const child = value[key];
-      if (child.__type === 'custom') {
-        return (
-          <CustomVariable
-            key={key}
-            name={key}
-            path={`${path}.${key}`}
-            state={child}
-            onChange={onChange}
-            onSave={onSave}
-          />
-        );
-      }
+
 
       return (
-        <BasicVariable
-          key={key}
-          name={key}
-          path={`${path}.${key}`}
-          state={child}
-          onChange={onChange}
-          onSave={onSave}
-        />
+          <HardwareVariable
+              key={key}
+              name={key}
+              path={`${path}.${key}`}
+              state={child}
+              onChange={onChange}
+              onSave={onSave}
+          />
       );
     });
 
@@ -141,4 +122,4 @@ class CustomVariable extends Component<Props, State> {
   }
 }
 
-export default CustomVariable;
+export default HardwareVariable;

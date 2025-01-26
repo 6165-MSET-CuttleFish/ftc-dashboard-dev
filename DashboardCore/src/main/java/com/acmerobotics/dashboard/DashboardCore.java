@@ -109,7 +109,7 @@ public class DashboardCore {
                     sendFun.send(new ReceiveConfig(v));
                 });
                 hardwareRoot.with(v -> {
-                    sendFun.send(new ReceiveConfig(v));
+                    sendFun.send(new ReceiveHardware(v));
                 });
 
                 sockets.with(l -> {
@@ -150,7 +150,7 @@ public class DashboardCore {
                     }
                     case GET_HARDWARE:
                         hardwareRoot.with(v -> {
-                            sendFun.send(new ReceiveConfig(v));
+                            sendFun.send(new ReceiveHardware(v));
                         });
                         return true;
 
