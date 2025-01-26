@@ -666,6 +666,14 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             }
         });
 
+        core.withHardwareRoot(
+        new CustomVariableConsumer() {
+            @Override
+            public void accept(CustomVariable configRoot) {
+                addConfigClasses(configRoot);
+            }
+        });
+
         try {
             server.start();
         } catch (IOException e) {
@@ -1044,6 +1052,10 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         core.withConfigRoot(function);
     }
 
+    public void withHardwareRoot(CustomVariableConsumer function) {
+        core.withHardwareRoot(function);
+    }
+
     /**
      * Add config variable with custom provider that is automatically removed when op mode ends.
      *
@@ -1250,6 +1262,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         if (!(opMode instanceof OpModeManagerImpl.DefaultOpMode)) {
             clearTelemetry();
         }
+
     }
 
     @Override
@@ -1268,7 +1281,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     new Thread(() -> {
                         while (o.status == RobotStatus.OpModeStatus.RUNNING && !Thread.currentThread().isInterrupted()) {
                             TelemetryPacket diagnosticsPacket = new TelemetryPacket();
-                            updateDiagnosticsTelemetry(diagnosticsPacket, o.opMode);
+                            updateDiagnosticsTelemetry(o.opMode);
                             sendTelemetryPacket(diagnosticsPacket);
 
                             try {
@@ -1313,70 +1326,34 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             }
         }).start();
 
+        (new Thread() {
+            @Override
+            public void run() {
+                withConfigRoot(new CustomVariableConsumer() {
+                    @Override
+                    public void accept(CustomVariable configRoot) {
+                        for (String[] var : varsToRemove) {
+                            String category = var[0];
+                            String name = var[1];
+                            CustomVariable catVar =
+                                    (CustomVariable) configRoot.getVariable(category);
+                            catVar.removeVariable(name);
+                            if (catVar.size() == 0) {
+                                configRoot.removeVariable(category);
+                            }
+                        }
+                        varsToRemove.clear();
+                    }
+                });
+            }
+        }).start();
+
         stopCameraStream();
     }
 
-    private void updateDiagnosticsTelemetry(TelemetryPacket packet, OpMode opMode) {
+    private void updateDiagnosticsTelemetry(OpMode opMode) {
         if (opMode.hardwareMap != null) {
-            /*if (motors != null) {
-                for (DcMotorEx motor : motors) {
-                    String name = opMode.hardwareMap.getNamesOf(motor).iterator().next();
-                    double power = motor.getPower();
-                    int position = motor.getCurrentPosition();
-                    double current = motor.getCurrent(CurrentUnit.MILLIAMPS);
-                    int port = motor.getPortNumber();
-
-                    packet.put(hardwareKey + "Motor " + name + " Power", power);
-                    packet.put(hardwareKey + "Motor " + name + " Encoder Position", position);
-                    packet.put(hardwareKey + "Motor " + name + " Current Draw", current);
-                    packet.put(hardwareKey + "Motor " + name + " Port", port);
-                }
-            }
-
-            if (servos != null) {
-                for (Servo servo : servos) {
-                    String name = opMode.hardwareMap.getNamesOf(servo).iterator().next();
-                    double position = servo.getPosition();
-
-                    packet.put(hardwareKey + "Servo " + name + " Position", position);
-                }
-            }
-
-             */
-        }
-    }
-
-    public void setMotorPower(String motorName, double power) {
-        if (motors != null) {
-            for (DcMotorEx motor : motors) {
-                if (motorName.equals(motor.getDeviceName())) {
-                    motor.setPower(power);
-                    break;
-                }
-            }
-        }
-    }
-
-    public void setMotorPosition(String motorName, int position) {
-        if (motors != null) {
-            for (DcMotorEx motor : motors) {
-                if (motorName.equals(motor.getDeviceName())) {
-                    motor.setTargetPosition(position);
-                    motor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-                    break;
-                }
-            }
-        }
-    }
-
-    public void setServoPosition(String servoName, double position) {
-        if (servos != null) {
-            for (Servo servo : servos) {
-                if (servoName.equals(servo.getDeviceName())) {
-                    servo.setPosition(position);
-                    break;
-                }
-            }
+            updateHardware(getHardwareState());
         }
     }
 
@@ -1384,8 +1361,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         enableDiagnostics = enabled;
     }
 
-    // Method to collect hardware and convert to JSON
-    public synchronized String getHardwareState() {
+    public synchronized JsonObject getHardwareState() {
         JsonObject hardwareState = new JsonObject();
         JsonArray motorArray = new JsonArray();
         JsonArray servoArray = new JsonArray();
@@ -1411,10 +1387,9 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
         hardwareState.add("motors", motorArray);
         hardwareState.add("servos", servoArray);
-        return hardwareState.toString();
+        return hardwareState;
     }
 
-    // Handle hardware updates from client
     public synchronized void updateHardware(JsonObject updates) {
         if (updates.has("motors")) {
             for (JsonElement motorElement : updates.getAsJsonArray("motors")) {
