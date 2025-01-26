@@ -1316,7 +1316,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
     private void updateDiagnosticsTelemetry(TelemetryPacket packet, OpMode opMode) {
         if (opMode.hardwareMap != null) {
-            if (motors != null) {
+            /*if (motors != null) {
                 for (DcMotorEx motor : motors) {
                     String name = opMode.hardwareMap.getNamesOf(motor).iterator().next();
                     double power = motor.getPower();
@@ -1339,6 +1339,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     packet.put(hardwareKey + "Servo " + name + " Position", position);
                 }
             }
+
+             */
         }
     }
 

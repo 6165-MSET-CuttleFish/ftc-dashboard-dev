@@ -61,10 +61,10 @@ const socketMiddleware: Middleware<Record<string, unknown>, RootState> =
       // messages forwarded to the server
       case RECEIVE_GAMEPAD_STATE:
       case GET_ROBOT_STATUS:
+      case 'SAVE_HARDWARE':
+      case 'GET_HARDWARE':
       case 'SAVE_CONFIG':
       case 'GET_CONFIG':
-      case 'GET_HARDWARE':
-      case 'SAVE_HARDWARE':
       case INIT_OP_MODE:
       case START_OP_MODE:
       case STOP_OP_MODE: {
