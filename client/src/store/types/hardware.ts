@@ -66,3 +66,9 @@ export type SaveHardwareAction = {
 export type RefreshHardwareAction = {
   type: 'REFRESH_HARDWARE';
 };
+
+export type HardwareAction =
+    | { type: 'GET_HARDWARE' }
+    | { type: 'UPDATE_HARDWARE'; payload: { type: 'motors' | 'servos'; name: string; value: number } }
+    | { type: 'RECEIVE_HARDWARE'; payload: { hardwareRoot: Record<string, any> } };
+

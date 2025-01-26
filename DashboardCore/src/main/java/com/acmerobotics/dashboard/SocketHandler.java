@@ -9,4 +9,5 @@ public interface SocketHandler {
 
     // Returns true iff the message was handled
     boolean onMessage(Message message);
+
 }

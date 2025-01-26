@@ -29,11 +29,11 @@ export const receiveConnectionStatus =
     }
   };
 
-export const requestHardwareState = () => ({
-  type: 'REQUEST_HARDWARE_STATE',
+export const getHardwareState = () => ({
+  type: 'GET_HARDWARE',
 });
 
-export const updateHardware = (type: 'motors' | 'servos', name: string, value: number) => ({
+export const updateHardwareState = (type: 'motors' | 'servos', name: string, value: number) => ({
   type: 'UPDATE_HARDWARE',
   payload: { type, name, value },
 });

@@ -128,12 +128,12 @@ const initialState: HardwareState = {
 };
 
 const hardwareReducer = (
-  state: HardwareState = initialState,
-  action:
-    | ReceiveHardwareAction
-    | UpdateHardwareAction
-    | SaveHardwareAction
-    | RefreshHardwareAction,
+    state: HardwareState = initialState,
+    action:
+        | ReceiveHardwareAction
+        | UpdateHardwareAction
+        | SaveHardwareAction
+        | RefreshHardwareAction,
 ): HardwareState => {
   switch (action.type) {
     case 'RECEIVE_HARDWARE':

@@ -61,8 +61,13 @@ const socketMiddleware: Middleware<Record<string, unknown>, RootState> =
       // messages forwarded to the server
       case RECEIVE_GAMEPAD_STATE:
       case GET_ROBOT_STATUS:
-      case 'SAVE_HARDWARE':
       case 'GET_HARDWARE':
+      case 'UPDATE_HARDWARE': {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(action));
+        }
+        break;
+      }
       case 'SAVE_CONFIG':
       case 'GET_CONFIG':
       case INIT_OP_MODE:

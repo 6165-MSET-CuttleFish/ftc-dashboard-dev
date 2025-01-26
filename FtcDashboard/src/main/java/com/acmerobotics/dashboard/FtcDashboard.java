@@ -24,6 +24,9 @@ import com.acmerobotics.dashboard.message.redux.ReceiveImage;
 import com.acmerobotics.dashboard.message.redux.ReceiveOpModeList;
 import com.acmerobotics.dashboard.message.redux.ReceiveRobotStatus;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.qualcomm.ftccommon.FtcEventLoop;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -93,7 +96,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     private static final String PREFS_AUTO_ENABLE_KEY = "autoEnable";
 
     private static FtcDashboard instance;
-
     @OpModeRegistrar
     public static void registerOpMode(OpModeManager manager) {
         if (instance != null && !suppressOpMode) {
@@ -1381,4 +1383,66 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     public void toggleDiagnostics(boolean enabled) {
         enableDiagnostics = enabled;
     }
+
+    // Method to collect hardware and convert to JSON
+    public synchronized String getHardwareState() {
+        JsonObject hardwareState = new JsonObject();
+        JsonArray motorArray = new JsonArray();
+        JsonArray servoArray = new JsonArray();
+
+        if (motors != null) {
+            for (DcMotorEx motor : motors) {
+                JsonObject motorObj = new JsonObject();
+                motorObj.addProperty("name", motor.getDeviceName());
+                motorObj.addProperty("power", motor.getPower());
+                motorObj.addProperty("position", motor.getCurrentPosition());
+                motorArray.add(motorObj);
+            }
+        }
+
+        if (servos != null) {
+            for (Servo servo : servos) {
+                JsonObject servoObj = new JsonObject();
+                servoObj.addProperty("name", servo.getDeviceName());
+                servoObj.addProperty("position", servo.getPosition());
+                servoArray.add(servoObj);
+            }
+        }
+
+        hardwareState.add("motors", motorArray);
+        hardwareState.add("servos", servoArray);
+        return hardwareState.toString();
+    }
+
+    // Handle hardware updates from client
+    public synchronized void updateHardware(JsonObject updates) {
+        if (updates.has("motors")) {
+            for (JsonElement motorElement : updates.getAsJsonArray("motors")) {
+                JsonObject motorObj = motorElement.getAsJsonObject();
+                String name = motorObj.get("name").getAsString();
+                double power = motorObj.get("power").getAsDouble();
+
+                for (DcMotorEx motor : motors) {
+                    if (motor.getDeviceName().equals(name)) {
+                        motor.setPower(power);
+                    }
+                }
+            }
+        }
+
+        if (updates.has("servos")) {
+            for (JsonElement servoElement : updates.getAsJsonArray("servos")) {
+                JsonObject servoObj = servoElement.getAsJsonObject();
+                String name = servoObj.get("name").getAsString();
+                double position = servoObj.get("position").getAsDouble();
+
+                for (Servo servo : servos) {
+                    if (servo.getDeviceName().equals(name)) {
+                        servo.setPosition(position);
+                    }
+                }
+            }
+        }
+    }
+    
 }
