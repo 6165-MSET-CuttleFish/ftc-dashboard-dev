@@ -4,12 +4,12 @@ import { Action, combineReducers } from 'redux';
 import telemetryReducer from './telemetry';
 import socketReducer from './socket';
 import configReducer from './config';
+import hardwareReducer from './hardware';
 import statusReducer from './status';
 import cameraReducer from './camera';
 import settingsReducer from './settings';
 import gamepadReducer from './gamepad';
 import { createDispatchHook } from 'react-redux';
-import hardwareReducer from './hardware';
 
 const rootReducer = combineReducers({
   telemetry: telemetryReducer,
