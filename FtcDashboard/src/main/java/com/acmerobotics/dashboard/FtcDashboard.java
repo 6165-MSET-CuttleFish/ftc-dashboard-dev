@@ -567,6 +567,37 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }
     }
 
+    private void addHardwareClasses(CustomVariable hardwareRoot) {
+        CustomVariable motorsVariable = new CustomVariable();
+
+        activeOpMode.with(o -> {
+            if (o.opMode.hardwareMap != null) {
+                for (DcMotorEx motor : o.opMode.hardwareMap.getAll(DcMotorEx.class)) {
+                    CustomVariable motorVariable = new CustomVariable();
+
+                    motorVariable.putVariable(motor.getDeviceName(), ReflectionConfig.createVariableFromDcMotorSimple(motor));
+                }
+            }
+        });
+
+        hardwareRoot.putVariable("Motors", motorsVariable);
+
+        // Add servos to the hardwareRoot
+        CustomVariable servosVariable = new CustomVariable();
+
+        activeOpMode.with(o -> {
+            if (o.opMode.hardwareMap != null) {
+                for (Servo servo : o.opMode.hardwareMap.getAll(Servo.class)) {
+                    CustomVariable servoVariable = new CustomVariable();
+
+                    servoVariable.putVariable(servo.getDeviceName(), ReflectionConfig.createVariableFromDcMotorSimple(servo));
+                }
+            }
+        });
+
+        hardwareRoot.putVariable("Servos", servosVariable);
+    }
+
     private class DashWebSocket extends NanoWSD.WebSocket implements SendFun {
         final SocketHandler sh = core.newSocket(this);
 
@@ -1270,29 +1301,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         activeOpMode.with(o -> {
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.RUNNING;
-
-            if (enableDiagnostics) {
-                if (o.opMode.hardwareMap != null) {
-                    // Initialize motors and servos dynamically
-                    motors = new ArrayList<>(o.opMode.hardwareMap.getAll(DcMotorEx.class));
-                    servos = new ArrayList<>(o.opMode.hardwareMap.getAll(Servo.class));
-
-                    // Periodic updates
-                    new Thread(() -> {
-                        while (o.status == RobotStatus.OpModeStatus.RUNNING && !Thread.currentThread().isInterrupted()) {
-                            TelemetryPacket diagnosticsPacket = new TelemetryPacket();
-                            updateDiagnosticsTelemetry(o.opMode);
-                            sendTelemetryPacket(diagnosticsPacket);
-
-                            try {
-                                Thread.sleep(100);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                            }
-                        }
-                    }).start();
-                }
-            }
         });
     }
 
@@ -1349,12 +1357,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }).start();
 
         stopCameraStream();
-    }
-
-    private void updateDiagnosticsTelemetry(OpMode opMode) {
-        if (opMode.hardwareMap != null) {
-            updateHardware(getHardwareState());
-        }
     }
 
     public void toggleDiagnostics(boolean enabled) {
