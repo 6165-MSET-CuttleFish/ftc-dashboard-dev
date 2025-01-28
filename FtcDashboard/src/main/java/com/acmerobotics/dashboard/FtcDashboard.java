@@ -1,5 +1,7 @@
 package com.acmerobotics.dashboard;
 
+import static com.acmerobotics.dashboard.config.reflection.ReflectionConfig.createVariableFromDouble;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -24,8 +26,6 @@ import com.acmerobotics.dashboard.message.redux.ReceiveImage;
 import com.acmerobotics.dashboard.message.redux.ReceiveOpModeList;
 import com.acmerobotics.dashboard.message.redux.ReceiveRobotStatus;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.qualcomm.ftccommon.FtcEventLoop;
 import com.qualcomm.hardware.lynx.LynxModule;
@@ -36,6 +36,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.RobotLog;
@@ -79,11 +80,8 @@ import org.firstinspires.ftc.robotserver.internal.webserver.MimeTypesUtil;
  * Main class for interacting with the instance.
  */
 public class FtcDashboard implements OpModeManagerImpl.Notifications {
-    private List<DcMotorEx> motors;
-    private List<Servo> servos;
     private boolean enableDiagnostics = true;
-
-    private String hardwareKey = "hardwareViewKey-7348927289475374384783";
+    JsonObject hardwareState;
 
     private static final String TAG = "FtcDashboard";
 
@@ -567,35 +565,35 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }
     }
 
-    private void addHardwareClasses(CustomVariable hardwareRoot) {
-        CustomVariable motorsVariable = new CustomVariable();
+    private void addHardware(CustomVariable hardwareRoot) {
+        CustomVariable motors = new CustomVariable();
 
         activeOpMode.with(o -> {
-            if (o.opMode.hardwareMap != null) {
-                for (DcMotorEx motor : o.opMode.hardwareMap.getAll(DcMotorEx.class)) {
-                    CustomVariable motorVariable = new CustomVariable();
-
-                    motorVariable.putVariable(motor.getDeviceName(), ReflectionConfig.createVariableFromDcMotorSimple(motor));
+            if (o.opMode != null) {
+                for (DcMotorSimple motor : o.opMode.hardwareMap.getAll(DcMotorSimple.class)) {
+                    DcMotorEx motorEx = (DcMotorEx) motor;
+                    motors.putVariable("Power", createVariableFromDouble(motorEx.getPower()));
+                    motors.putVariable("Position", createVariableFromDouble(motorEx.getCurrentPosition()));
+                    motors.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
+                    motors.putVariable("Port", createVariableFromDouble(motorEx.getPortNumber()));
                 }
             }
         });
 
-        hardwareRoot.putVariable("Motors", motorsVariable);
+        hardwareRoot.putVariable("Motors", motors);
 
-        // Add servos to the hardwareRoot
-        CustomVariable servosVariable = new CustomVariable();
+        CustomVariable servos = new CustomVariable();
 
         activeOpMode.with(o -> {
-            if (o.opMode.hardwareMap != null) {
+            if (o.opMode != null) {
                 for (Servo servo : o.opMode.hardwareMap.getAll(Servo.class)) {
-                    CustomVariable servoVariable = new CustomVariable();
-
-                    servoVariable.putVariable(servo.getDeviceName(), ReflectionConfig.createVariableFromDcMotorSimple(servo));
+                    servos.putVariable("Position", createVariableFromDouble(servo.getPosition()));
+                    servos.putVariable("Port", createVariableFromDouble(servo.getPortNumber()));
                 }
             }
         });
 
-        hardwareRoot.putVariable("Servos", servosVariable);
+        hardwareRoot.putVariable("Servos", servos);
     }
 
     private class DashWebSocket extends NanoWSD.WebSocket implements SendFun {
@@ -697,11 +695,10 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             }
         });
 
-        core.withHardwareRoot(
-        new CustomVariableConsumer() {
+        core.withHardwareRoot(new CustomVariableConsumer() {
             @Override
-            public void accept(CustomVariable configRoot) {
-                addConfigClasses(configRoot);
+            public void accept(CustomVariable hardwareRoot) {
+                addHardware(hardwareRoot);
             }
         });
 
@@ -1362,64 +1359,4 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     public void toggleDiagnostics(boolean enabled) {
         enableDiagnostics = enabled;
     }
-
-    public synchronized JsonObject getHardwareState() {
-        JsonObject hardwareState = new JsonObject();
-        JsonArray motorArray = new JsonArray();
-        JsonArray servoArray = new JsonArray();
-
-        if (motors != null) {
-            for (DcMotorEx motor : motors) {
-                JsonObject motorObj = new JsonObject();
-                motorObj.addProperty("name", motor.getDeviceName());
-                motorObj.addProperty("power", motor.getPower());
-                motorObj.addProperty("position", motor.getCurrentPosition());
-                motorArray.add(motorObj);
-            }
-        }
-
-        if (servos != null) {
-            for (Servo servo : servos) {
-                JsonObject servoObj = new JsonObject();
-                servoObj.addProperty("name", servo.getDeviceName());
-                servoObj.addProperty("position", servo.getPosition());
-                servoArray.add(servoObj);
-            }
-        }
-
-        hardwareState.add("motors", motorArray);
-        hardwareState.add("servos", servoArray);
-        return hardwareState;
-    }
-
-    public synchronized void updateHardware(JsonObject updates) {
-        if (updates.has("motors")) {
-            for (JsonElement motorElement : updates.getAsJsonArray("motors")) {
-                JsonObject motorObj = motorElement.getAsJsonObject();
-                String name = motorObj.get("name").getAsString();
-                double power = motorObj.get("power").getAsDouble();
-
-                for (DcMotorEx motor : motors) {
-                    if (motor.getDeviceName().equals(name)) {
-                        motor.setPower(power);
-                    }
-                }
-            }
-        }
-
-        if (updates.has("servos")) {
-            for (JsonElement servoElement : updates.getAsJsonArray("servos")) {
-                JsonObject servoObj = servoElement.getAsJsonObject();
-                String name = servoObj.get("name").getAsString();
-                double position = servoObj.get("position").getAsDouble();
-
-                for (Servo servo : servos) {
-                    if (servo.getDeviceName().equals(name)) {
-                        servo.setPosition(position);
-                    }
-                }
-            }
-        }
-    }
-    
 }

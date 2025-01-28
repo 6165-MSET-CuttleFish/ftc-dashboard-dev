@@ -5,11 +5,6 @@ import com.acmerobotics.dashboard.config.variable.BasicVariable;
 import com.acmerobotics.dashboard.config.variable.ConfigVariable;
 import com.acmerobotics.dashboard.config.variable.CustomVariable;
 import com.acmerobotics.dashboard.config.variable.VariableType;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.Servo;
-
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -30,27 +25,6 @@ public class ReflectionConfig {
             }
             customVariable.putVariable(field.getName(), createVariableFromField(field, null));
         }
-
-        return customVariable;
-    }
-
-    public static CustomVariable createVariableFromDcMotorSimple(DcMotorSimple motorClass) {
-        CustomVariable customVariable = new CustomVariable();
-
-        DcMotorEx motor = (DcMotorEx)motorClass;
-        customVariable.putVariable("Power", createVariableFromDouble(motor.getPower()));
-        customVariable.putVariable("Position", createVariableFromDouble(motor.getCurrentPosition()));
-        customVariable.putVariable("Current", createVariableFromDouble(motor.getCurrent(CurrentUnit.AMPS)));
-        customVariable.putVariable("Port", createVariableFromDouble(motor.getPortNumber()));
-
-        return customVariable;
-    }
-
-    public static CustomVariable createVariableFromServo(Servo servoClass) {
-        CustomVariable customVariable = new CustomVariable();
-
-        customVariable.putVariable("Power", createVariableFromDouble(servoClass.getPosition()));
-        customVariable.putVariable("Port", createVariableFromDouble(servoClass.getPortNumber()));
 
         return customVariable;
     }
@@ -158,7 +132,7 @@ public class ReflectionConfig {
         }
     }
 
-    private static ConfigVariable<Double> createVariableFromDouble(double value) {
+    public static ConfigVariable<Double> createVariableFromDouble(double value) {
         return new BasicVariable<>(VariableType.DOUBLE, new ConstantProvider<>(value));
     }
 }
