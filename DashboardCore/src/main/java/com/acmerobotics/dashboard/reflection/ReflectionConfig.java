@@ -1,10 +1,9 @@
-package com.acmerobotics.dashboard.config.reflection;
+package com.acmerobotics.dashboard.reflection;
 
-import com.acmerobotics.dashboard.config.ConstantProvider;
-import com.acmerobotics.dashboard.config.variable.BasicVariable;
-import com.acmerobotics.dashboard.config.variable.ConfigVariable;
-import com.acmerobotics.dashboard.config.variable.CustomVariable;
-import com.acmerobotics.dashboard.config.variable.VariableType;
+import com.acmerobotics.dashboard.variable.BasicVariable;
+import com.acmerobotics.dashboard.variable.ConfigVariable;
+import com.acmerobotics.dashboard.variable.CustomVariable;
+import com.acmerobotics.dashboard.variable.VariableType;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -130,9 +129,5 @@ public class ReflectionConfig {
                 throw new RuntimeException("Unsupported field type: " +
                     fieldClass.getName());
         }
-    }
-
-    public static ConfigVariable<Double> createVariableFromDouble(double value) {
-        return new BasicVariable<>(VariableType.DOUBLE, new ConstantProvider<>(value));
     }
 }

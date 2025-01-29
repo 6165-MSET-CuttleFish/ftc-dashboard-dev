@@ -28,3 +28,13 @@ export const receiveConnectionStatus =
       dispatch(receiveOpModeList([]));
     }
   };
+
+export const getHardwareState = () => ({
+  type: 'GET_HARDWARE',
+});
+
+export const updateHardwareState = (type: 'motors' | 'servos', name: string, value: number) => ({
+  type: 'UPDATE_HARDWARE',
+  payload: { type, name, value },
+});
+

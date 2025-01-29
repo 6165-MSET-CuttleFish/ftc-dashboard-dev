@@ -1,5 +1,7 @@
 package com.acmerobotics.dashboard;
 
+import static com.acmerobotics.dashboard.config.reflection.ReflectionConfig.createVariableFromDouble;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -24,6 +26,7 @@ import com.acmerobotics.dashboard.message.redux.ReceiveImage;
 import com.acmerobotics.dashboard.message.redux.ReceiveOpModeList;
 import com.acmerobotics.dashboard.message.redux.ReceiveRobotStatus;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.google.gson.JsonObject;
 import com.qualcomm.ftccommon.FtcEventLoop;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -33,6 +36,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.RobotLog;
@@ -76,11 +80,8 @@ import org.firstinspires.ftc.robotserver.internal.webserver.MimeTypesUtil;
  * Main class for interacting with the instance.
  */
 public class FtcDashboard implements OpModeManagerImpl.Notifications {
-    private List<DcMotorEx> motors;
-    private List<Servo> servos;
     private boolean enableDiagnostics = true;
-
-    private String hardwareKey = "hardwareViewKey-7348927289475374384783";
+    JsonObject hardwareState;
 
     private static final String TAG = "FtcDashboard";
 
@@ -93,7 +94,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     private static final String PREFS_AUTO_ENABLE_KEY = "autoEnable";
 
     private static FtcDashboard instance;
-
     @OpModeRegistrar
     public static void registerOpMode(OpModeManager manager) {
         if (instance != null && !suppressOpMode) {
@@ -565,6 +565,39 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }
     }
 
+    private void addHardware(CustomVariable hardwareRoot) {
+        CustomVariable motors = new CustomVariable();
+
+        activeOpMode.with(o -> {
+            if (o.opMode != null) {
+                for (DcMotorSimple motor : o.opMode.hardwareMap.getAll(DcMotorSimple.class)) {
+                    DcMotorEx motorEx = (DcMotorEx) motor;
+                    motors.putVariable("Power", createVariableFromDouble(motorEx.getPower()));
+                    motors.putVariable("Position", createVariableFromDouble(motorEx.getCurrentPosition()));
+                    motors.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
+                    motors.putVariable("Port", createVariableFromDouble(motorEx.getPortNumber()));
+                }
+                motors.putVariable("Test motor", createVariableFromDouble(23424.433));
+            }
+        });
+
+        hardwareRoot.putVariable("Motors", motors);
+
+        CustomVariable servos = new CustomVariable();
+
+        activeOpMode.with(o -> {
+            if (o.opMode != null) {
+                for (Servo servo : o.opMode.hardwareMap.getAll(Servo.class)) {
+                    servos.putVariable("Position", createVariableFromDouble(servo.getPosition()));
+                    servos.putVariable("Port", createVariableFromDouble(servo.getPortNumber()));
+                }
+                motors.putVariable("test server", createVariableFromDouble(5757.099));
+            }
+        });
+
+        hardwareRoot.putVariable("Servos", servos);
+    }
+
     private class DashWebSocket extends NanoWSD.WebSocket implements SendFun {
         final SocketHandler sh = core.newSocket(this);
 
@@ -661,6 +694,13 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             @Override
             public void accept(CustomVariable configRoot) {
                 addConfigClasses(configRoot);
+            }
+        });
+
+        core.withHardwareRoot(new CustomVariableConsumer() {
+            @Override
+            public void accept(CustomVariable hardwareRoot) {
+                addHardware(hardwareRoot);
             }
         });
 
@@ -1042,6 +1082,10 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         core.withConfigRoot(function);
     }
 
+    public void withHardwareRoot(CustomVariableConsumer function) {
+        core.withHardwareRoot(function);
+    }
+
     /**
      * Add config variable with custom provider that is automatically removed when op mode ends.
      *
@@ -1248,6 +1292,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         if (!(opMode instanceof OpModeManagerImpl.DefaultOpMode)) {
             clearTelemetry();
         }
+
     }
 
     @Override
@@ -1255,29 +1300,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         activeOpMode.with(o -> {
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.RUNNING;
-
-            if (enableDiagnostics) {
-                if (o.opMode.hardwareMap != null) {
-                    // Initialize motors and servos dynamically
-                    motors = new ArrayList<>(o.opMode.hardwareMap.getAll(DcMotorEx.class));
-                    servos = new ArrayList<>(o.opMode.hardwareMap.getAll(Servo.class));
-
-                    // Periodic updates
-                    new Thread(() -> {
-                        while (o.status == RobotStatus.OpModeStatus.RUNNING && !Thread.currentThread().isInterrupted()) {
-                            TelemetryPacket diagnosticsPacket = new TelemetryPacket();
-                            updateDiagnosticsTelemetry(diagnosticsPacket, o.opMode);
-                            sendTelemetryPacket(diagnosticsPacket);
-
-                            try {
-                                Thread.sleep(100);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                            }
-                        }
-                    }).start();
-                }
-            }
         });
     }
 
@@ -1311,69 +1333,29 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             }
         }).start();
 
+        (new Thread() {
+            @Override
+            public void run() {
+                withHardwareRoot(new CustomVariableConsumer() {
+                    @Override
+                    public void accept(CustomVariable hardwareRoot) {
+                        for (String[] var : varsToRemove) {
+                            String category = var[0];
+                            String name = var[1];
+                            CustomVariable catVar =
+                                    (CustomVariable) hardwareRoot.getVariable(category);
+                            catVar.removeVariable(name);
+                            if (catVar.size() == 0) {
+                                hardwareRoot.removeVariable(category);
+                            }
+                        }
+                        varsToRemove.clear();
+                    }
+                });
+            }
+        }).start();
+
         stopCameraStream();
-    }
-
-    private void updateDiagnosticsTelemetry(TelemetryPacket packet, OpMode opMode) {
-        if (opMode.hardwareMap != null) {
-            if (motors != null) {
-                for (DcMotorEx motor : motors) {
-                    String name = opMode.hardwareMap.getNamesOf(motor).iterator().next();
-                    double power = motor.getPower();
-                    int position = motor.getCurrentPosition();
-                    double current = motor.getCurrent(CurrentUnit.MILLIAMPS);
-                    int port = motor.getPortNumber();
-
-                    packet.put(hardwareKey + "Motor " + name + " Power", power);
-                    packet.put(hardwareKey + "Motor " + name + " Encoder Position", position);
-                    packet.put(hardwareKey + "Motor " + name + " Current Draw", current);
-                    packet.put(hardwareKey + "Motor " + name + " Port", port);
-                }
-            }
-
-            if (servos != null) {
-                for (Servo servo : servos) {
-                    String name = opMode.hardwareMap.getNamesOf(servo).iterator().next();
-                    double position = servo.getPosition();
-
-                    packet.put(hardwareKey + "Servo " + name + " Position", position);
-                }
-            }
-        }
-    }
-
-    public void setMotorPower(String motorName, double power) {
-        if (motors != null) {
-            for (DcMotorEx motor : motors) {
-                if (motorName.equals(motor.getDeviceName())) {
-                    motor.setPower(power);
-                    break;
-                }
-            }
-        }
-    }
-
-    public void setMotorPosition(String motorName, int position) {
-        if (motors != null) {
-            for (DcMotorEx motor : motors) {
-                if (motorName.equals(motor.getDeviceName())) {
-                    motor.setTargetPosition(position);
-                    motor.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-                    break;
-                }
-            }
-        }
-    }
-
-    public void setServoPosition(String servoName, double position) {
-        if (servos != null) {
-            for (Servo servo : servos) {
-                if (servoName.equals(servo.getDeviceName())) {
-                    servo.setPosition(position);
-                    break;
-                }
-            }
-        }
     }
 
     public void toggleDiagnostics(boolean enabled) {

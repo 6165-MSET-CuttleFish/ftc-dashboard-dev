@@ -15,12 +15,12 @@ import { ReactComponent as RefreshIcon } from '@/assets/icons/refresh.svg';
 
 import { RootState, useAppDispatch } from '@/store/reducers';
 import {
-  ConfigVar,
-  ConfigVarState,
+  HardwareVar,
+  HardwareVarState,
   CustomVarState,
-} from '@/store/types/config';
+} from '@/store/types/hardware';
 
-function validAndModified(state: ConfigVarState): ConfigVar | null {
+function validAndModified(state: HardwareVarState): HardwareVar | null {
   if (state.__type === 'custom') {
     const value = state.__value;
     if (value === null) {
@@ -69,20 +69,20 @@ function validAndModified(state: ConfigVarState): ConfigVar | null {
   }
 }
 
-type ConfigViewProps = BaseViewProps & BaseViewHeadingProps;
+type HardwareViewProps = BaseViewProps & BaseViewHeadingProps;
 
-const ConfigView = ({
+const HardwareView = ({
   id,
   isDraggable = false,
   isUnlocked = false,
-}: ConfigViewProps) => {
+}: HardwareViewProps) => {
   const dispatch = useAppDispatch();
 
-  const configRoot = useSelector(
-    (state: RootState) => state.config.configRoot,
+  const hardwareRoot = useSelector(
+    (state: RootState) => state.hardware.hardwareRoot,
   ) as CustomVarState;
 
-  const rootValue = configRoot.__value;
+  const rootValue = hardwareRoot.__value;
   if (rootValue === null) {
     return null;
   }
@@ -94,17 +94,17 @@ const ConfigView = ({
     <BaseView isUnlocked={isUnlocked}>
       <div className="flex">
         <BaseViewHeading isDraggable={isDraggable}>
-          Configuration
+          Hardware
         </BaseViewHeading>
         <BaseViewIcons>
           <BaseViewIconButton
             title="Save Changes"
             onClick={() => {
-              const configDiff = validAndModified(configRoot);
-              if (configDiff != null) {
+              const hardwareDiff = validAndModified(hardwareRoot);
+              if (hardwareDiff != null) {
                 dispatch({
-                  type: 'SAVE_CONFIG',
-                  configDiff,
+                  type: 'SAVE_HARDWARE',
+                  hardwareDiff,
                 });
               }
             }}
@@ -115,7 +115,7 @@ const ConfigView = ({
             title="Reload Values"
             onClick={() =>
               dispatch({
-                type: 'REFRESH_CONFIG',
+                type: 'REFRESH_HARDWARE',
               })
             }
           >
@@ -135,8 +135,8 @@ const ConfigView = ({
                 state={rootValue[key] as CustomVarState}
                 onChange={(newState) =>
                   dispatch({
-                    type: 'UPDATE_CONFIG',
-                    configRoot: {
+                    type: 'UPDATE_HARDWARE',
+                    hardwareRoot: {
                       __type: 'custom',
                       __value: sortedKeys.reduce(
                         (acc, key2) => ({
@@ -150,8 +150,8 @@ const ConfigView = ({
                 }
                 onSave={(variable) =>
                   dispatch({
-                    type: 'SAVE_CONFIG',
-                    configDiff: {
+                    type: 'SAVE_HARDWARE',
+                    hardwareDiff: {
                       __type: 'custom',
                       __value: {
                         [key]: variable,
@@ -168,4 +168,4 @@ const ConfigView = ({
   );
 };
 
-export default ConfigView;
+export default HardwareView;

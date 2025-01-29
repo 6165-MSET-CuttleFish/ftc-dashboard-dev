@@ -1,14 +1,14 @@
 import {
-  ConfigState,
-  ConfigVar,
-  ConfigVarState,
-  ReceiveConfigAction,
-  RefreshConfigAction,
-  SaveConfigAction,
-  UpdateConfigAction,
-} from '@/store/types/config';
+  HardwareState,
+  HardwareVar,
+  HardwareVarState,
+  ReceiveHardwareAction,
+  RefreshHardwareAction,
+  SaveHardwareAction,
+  UpdateHardwareAction,
+} from '@/store/types/hardware';
 
-function inflate(v: ConfigVar): ConfigVarState {
+function inflate(v: HardwareVar): HardwareVarState {
   if (v.__type === 'custom') {
     const value = v.__value;
     if (value === null) {
@@ -39,9 +39,9 @@ function inflate(v: ConfigVar): ConfigVarState {
 
 // merge modified, matching members of base into latest
 function mergeModified(
-  base: ConfigVarState,
-  latest: ConfigVar,
-): ConfigVarState {
+  base: HardwareVarState,
+  latest: HardwareVar,
+): HardwareVarState {
   if (base.__type === 'custom' && latest.__type === 'custom') {
     const latestValue = latest.__value;
     if (latestValue === null) {
@@ -92,7 +92,7 @@ function mergeModified(
   }
 }
 
-function revertModified(state: ConfigVarState): ConfigVarState {
+function revertModified(state: HardwareVarState): HardwareVarState {
   if (state.__type === 'custom') {
     const value = state.__value;
     if (value === null) {
@@ -120,40 +120,40 @@ function revertModified(state: ConfigVarState): ConfigVarState {
   }
 }
 
-const initialState: ConfigState = {
-  configRoot: {
+const initialState: HardwareState = {
+  hardwareRoot: {
     __type: 'custom',
     __value: {},
   },
 };
 
-const configReducer = (
-  state: ConfigState = initialState,
+const hardwareReducer = (
+  state: HardwareState = initialState,
   action:
-    | ReceiveConfigAction
-    | UpdateConfigAction
-    | SaveConfigAction
-    | RefreshConfigAction,
-): ConfigState => {
+    | ReceiveHardwareAction
+    | UpdateHardwareAction
+    | SaveHardwareAction
+    | RefreshHardwareAction,
+): HardwareState => {
   switch (action.type) {
-    case 'RECEIVE_CONFIG':
+    case 'RECEIVE_HARDWARE':
       return {
         ...state,
-        configRoot:  mergeModified(state.configRoot, action.configRoot),
+        hardwareRoot:  mergeModified(state.hardwareRoot, action.hardwareRoot),
       };
-    case 'UPDATE_CONFIG':
+    case 'UPDATE_HARDWARE':
       return {
         ...state,
-        configRoot: action.configRoot,
+        hardwareRoot: action.hardwareRoot,
       };
-    case 'REFRESH_CONFIG':
+    case 'REFRESH_HARDWARE':
       return {
         ...state,
-        configRoot: revertModified(state.configRoot),
+        hardwareRoot: revertModified(state.hardwareRoot),
       };
     default:
       return state;
   }
 };
 
-export default configReducer;
+export default hardwareReducer;
