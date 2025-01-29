@@ -519,11 +519,70 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     ));
 
     private static void addConfigClasses(CustomVariable customVariable) {
+        ClassLoader classLoader = FtcDashboard.class.getClassLoader();
 
+        Context context = AppUtil.getInstance().getApplication();
+        try {
+            DexFile dexFile = new DexFile(context.getPackageCodePath());
+
+            List<String> classNames = Collections.list(dexFile.entries());
+
+            for (String className : classNames) {
+                boolean skip = false;
+                for (String prefix : IGNORED_PACKAGES) {
+                    if (className.startsWith(prefix)) {
+                        skip = true;
+                        break;
+                    }
+                }
+
+                if (skip) {
+                    continue;
+                }
+
+                try {
+                    Class<?> configClass = Class.forName(className, false, classLoader);
+
+                    if (!configClass.isAnnotationPresent(Config.class)
+                        || configClass.isAnnotationPresent(Disabled.class)) {
+                        continue;
+                    }
+
+                    String name = configClass.getSimpleName();
+                    String altName = configClass.getAnnotation(Config.class).value();
+                    if (!altName.isEmpty()) {
+                        name = altName;
+                    }
+
+                    customVariable.putVariable(name,
+                        ReflectionConfig.createVariableFromClass(configClass));
+                } catch (ClassNotFoundException | NoClassDefFoundError ignored) {
+                    // dash is unable to access many classes and reporting every instance
+                    // only clutters the logs
+                }
+            }
+        } catch (IOException e) {
+            RobotLog.logStackTrace(e);
+        }
+    }
+
+    private void addHardware(CustomVariable hardwareRoot) {
         CustomVariable motors = new CustomVariable();
 
-        
+        activeOpMode.with(o -> {
+            if (o.opMode != null) {
+                for (DcMotorSimple motor : o.opMode.hardwareMap.getAll(DcMotorSimple.class)) {
+                    CustomVariable motorVar = new CustomVariable();
+                    DcMotorEx motorEx = (DcMotorEx) motor;
+                    motorVar.putVariable("Power", createVariableFromDouble(motorEx.getPower()));
+                    motorVar.putVariable("Position", createVariableFromDouble(motorEx.getCurrentPosition()));
+                    motorVar.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
+                    motorVar.putVariable("Port", createVariableFromDouble(motorEx.getPortNumber()));
+                    motors.putVariable(motorEx.getDeviceName(), motorVar);
+                }
                 motors.putVariable("test", createVariableFromDouble(23424.433));
+            }
+        });
         ConfigVariable v = motors.getVariable("test");
 
         if (v == null) {
@@ -532,12 +591,10 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             System.out.println("motors in ftcdashboard.java: " + v.getValue());
         }
 
-        customVariable.putVariable("Motors", motors);
-    }
 
-    private void addHardware(CustomVariable hardwareRoot) {
+        hardwareRoot.putVariable("Motors", motors);
 
-        /*CustomVariable servos = new CustomVariable();
+        CustomVariable servos = new CustomVariable();
 
         activeOpMode.with(o -> {
             if (o.opMode != null) {
@@ -549,11 +606,11 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                 }
                 servos.putVariable("test servo", createVariableFromDouble(5757.099));
             }
-        });*/
+        });
 
         //System.out.println("servos in ftcdashboard.java: " + servos.getVariable("test servo").getValue());
 
-//        hardwareRoot.putVariable("Servos", servos);
+        hardwareRoot.putVariable("Servos", servos);
     }
 
     private class DashWebSocket extends NanoWSD.WebSocket implements SendFun {
