@@ -10,7 +10,7 @@ public class ReceiveHardware extends Message {
     public ReceiveHardware(CustomVariable var) {
         super(MessageType.RECEIVE_HARDWARE);
         this.var = var;
-        System.out.println("ReceiveHardware created. Is var null? " + (var == null));
+        System.out.println("3 - HARDWARE CALL: " + var.getValue());
     }
 
     public CustomVariable getVar() {
