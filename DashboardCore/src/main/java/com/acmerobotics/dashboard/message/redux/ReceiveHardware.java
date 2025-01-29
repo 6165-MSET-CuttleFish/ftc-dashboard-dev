@@ -5,11 +5,17 @@ import com.acmerobotics.dashboard.message.Message;
 import com.acmerobotics.dashboard.message.MessageType;
 
 public class ReceiveHardware extends Message {
-    private CustomVariable hardwareRoot;
+    private final CustomVariable var;
 
-    public ReceiveHardware(CustomVariable hardwareRoot) {
+    public ReceiveHardware(CustomVariable var) {
         super(MessageType.RECEIVE_HARDWARE);
+        this.var = var;
+        System.out.println("3 - HARDWARE CALL: " + var.getValue());
+    }
 
-        this.hardwareRoot = hardwareRoot;
+    public CustomVariable getVar() {
+
+        return var;
     }
 }
+
