@@ -1143,6 +1143,52 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     }
 
     /**
+     * Add config variable with custom provider that is automatically removed when op mode ends.
+     *
+     * @param category top-level category
+     * @param name     variable name
+     * @param provider getter/setter for the variable
+     * @param <T>      variable type
+     */
+    public <T> void addHardwareVariable(String category, String name, ValueProvider<T> provider) {
+        core.addHardwareVariable(category, name, provider);
+    }
+
+    /**
+     * Add config variable with custom provider.
+     *
+     * @param category   top-level category
+     * @param name       variable name
+     * @param provider   getter/setter for the variable
+     * @param autoRemove if true, the variable is removed on op mode termination
+     * @param <T>        variable type
+     */
+    public <T> void addHardwareVariable(final String category, final String name,
+                                      final ValueProvider<T> provider,
+                                      final boolean autoRemove) {
+        withConfigRoot(new CustomVariableConsumer() {
+            @Override
+            public void accept(CustomVariable configRoot) {
+                core.addHardwareVariable(category, name, provider);
+
+                if (autoRemove) {
+                    varsToRemove.add(new String[] {category, name});
+                }
+            }
+        });
+    }
+
+    /**
+     * Remove a config variable.
+     *
+     * @param category top-level category
+     * @param name     variable name
+     */
+    public void removeHardwareVariable(String category, String name) {
+        core.removeHardwareVariable(category, name);
+    }
+
+    /**
      * Sends an image to the dashboard for display (MJPEG style). Note that the encoding process is
      * synchronous. Stops the active stream if running.
      *
