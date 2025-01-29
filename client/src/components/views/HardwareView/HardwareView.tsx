@@ -19,6 +19,7 @@ import {
   HardwareVarState,
   CustomVarState,
 } from '@/store/types/hardware';
+import {useEffect} from "react";
 
 function validAndModified(state: HardwareVarState): HardwareVar | null {
   if (state.__type === 'custom') {
@@ -82,6 +83,22 @@ const HardwareView = ({
     (state: RootState) => state.hardware.hardwareRoot,
   ) as CustomVarState;
 
+  /*useEffect(() => {
+    dispatch({
+      type: 'RECEIVE_HARDWARE',
+      hardwareRoot: {
+        __type: 'custom',
+        __value: {
+          motor1: { __type: 'int', __value: 100 },
+          servo1: { __type: 'int', __value: 50 },
+        },
+      },
+    });
+  }, []);
+  */
+
+  console.log("hardwareRoot:", hardwareRoot);
+
   const rootValue = hardwareRoot.__value;
   if (rootValue === null) {
     return null;
@@ -89,6 +106,7 @@ const HardwareView = ({
 
   const sortedKeys = Object.keys(rootValue);
   sortedKeys.sort();
+
 
   return (
     <BaseView isUnlocked={isUnlocked}>
@@ -159,6 +177,7 @@ const HardwareView = ({
                     },
                   })
                 }
+
               />
             ))}
           </tbody>

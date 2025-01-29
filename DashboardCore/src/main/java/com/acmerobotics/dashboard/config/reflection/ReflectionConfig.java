@@ -133,6 +133,7 @@ public class ReflectionConfig {
     }
 
     public static ConfigVariable<Double> createVariableFromDouble(double value) {
+        System.out.println("createVariableFromDouble value: " + value);
         return new BasicVariable<>(VariableType.DOUBLE, new ConstantProvider<>(value));
     }
 }

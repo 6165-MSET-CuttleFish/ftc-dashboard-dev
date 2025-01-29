@@ -18,6 +18,7 @@ import android.widget.TextView;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.config.ValueProvider;
 import com.acmerobotics.dashboard.config.reflection.ReflectionConfig;
+import com.acmerobotics.dashboard.config.variable.ConfigVariable;
 import com.acmerobotics.dashboard.config.variable.CustomVariable;
 import com.acmerobotics.dashboard.message.Message;
 import com.acmerobotics.dashboard.message.redux.InitOpMode;
@@ -571,15 +572,25 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         activeOpMode.with(o -> {
             if (o.opMode != null) {
                 for (DcMotorSimple motor : o.opMode.hardwareMap.getAll(DcMotorSimple.class)) {
+                    CustomVariable motorVar = new CustomVariable();
                     DcMotorEx motorEx = (DcMotorEx) motor;
-                    motors.putVariable("Power", createVariableFromDouble(motorEx.getPower()));
-                    motors.putVariable("Position", createVariableFromDouble(motorEx.getCurrentPosition()));
-                    motors.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
-                    motors.putVariable("Port", createVariableFromDouble(motorEx.getPortNumber()));
+                    motorVar.putVariable("Power", createVariableFromDouble(motorEx.getPower()));
+                    motorVar.putVariable("Position", createVariableFromDouble(motorEx.getCurrentPosition()));
+                    motorVar.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
+                    motorVar.putVariable("Port", createVariableFromDouble(motorEx.getPortNumber()));
+                    motors.putVariable(motorEx.getDeviceName(), motorVar);
                 }
-                motors.putVariable("Test motor", createVariableFromDouble(23424.433));
+                motors.putVariable("test", createVariableFromDouble(23424.433));
             }
         });
+        ConfigVariable v = motors.getVariable("test");
+
+        if (v == null) {
+            System.out.println("MOTOR IS NULL");
+        } else {
+            System.out.println("motors in ftcdashboard.java: " + v.getValue());
+        }
+
 
         hardwareRoot.putVariable("Motors", motors);
 
@@ -588,12 +599,16 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         activeOpMode.with(o -> {
             if (o.opMode != null) {
                 for (Servo servo : o.opMode.hardwareMap.getAll(Servo.class)) {
-                    servos.putVariable("Position", createVariableFromDouble(servo.getPosition()));
-                    servos.putVariable("Port", createVariableFromDouble(servo.getPortNumber()));
+                    CustomVariable servoVar = new CustomVariable();
+                    servoVar.putVariable("Position", createVariableFromDouble(servo.getPosition()));
+                    servoVar.putVariable("Port", createVariableFromDouble(servo.getPortNumber()));
+                    servos.putVariable(servo.getDeviceName(), servoVar);
                 }
-                motors.putVariable("test server", createVariableFromDouble(5757.099));
+                servos.putVariable("test servo", createVariableFromDouble(5757.099));
             }
         });
+
+        //System.out.println("servos in ftcdashboard.java: " + servos.getVariable("test servo").getValue());
 
         hardwareRoot.putVariable("Servos", servos);
     }
@@ -690,6 +705,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     }
 
     private FtcDashboard() {
+        System.out.println("FTC DASH PRINT");
         core.withConfigRoot(new CustomVariableConsumer() {
             @Override
             public void accept(CustomVariable configRoot) {
@@ -697,12 +713,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             }
         });
 
-        core.withHardwareRoot(new CustomVariableConsumer() {
-            @Override
-            public void accept(CustomVariable hardwareRoot) {
-                addHardware(hardwareRoot);
-            }
-        });
 
         try {
             server.start();
@@ -1287,6 +1297,13 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         activeOpMode.with(o -> {
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.INIT;
+        });
+
+        core.withHardwareRoot(new CustomVariableConsumer() {
+            @Override
+            public void accept(CustomVariable hardwareRoot) {
+                addHardware(hardwareRoot);
+            }
         });
 
         if (!(opMode instanceof OpModeManagerImpl.DefaultOpMode)) {

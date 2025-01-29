@@ -109,6 +109,7 @@ public class DashboardCore {
                     sendFun.send(new ReceiveConfig(v));
                 });
                 hardwareRoot.with(v -> {
+//                     System.out.println("Sending hardware data to client: " + hardwareData);
                     sendFun.send(new ReceiveHardware(v));
                 });
 

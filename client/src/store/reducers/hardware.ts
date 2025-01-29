@@ -20,11 +20,11 @@ function inflate(v: HardwareVar): HardwareVarState {
       return {
         __type: 'custom',
         __value: Object.keys(value).reduce(
-          (acc, key) => ({
-            ...acc,
-            [key]: inflate(value[key]),
-          }),
-          {},
+            (acc, key) => ({
+              ...acc,
+              [key]: inflate(value[key]),
+            }),
+            {},
         ),
       };
     }
@@ -40,9 +40,12 @@ function inflate(v: HardwareVar): HardwareVarState {
 // merge modified, matching members of base into latest
 function mergeModified(
   base: HardwareVarState,
-  latest: HardwareVar,
+  latest: HardwareVar
 ): HardwareVarState {
-  if (base.__type === 'custom' && latest.__type === 'custom') {
+  console.log('mergeModified called with:', { base, latest });
+  /* if (base === null || latest === null) {
+    return inflate(latest);
+  } else  */if (base.__type === 'custom' && latest.__type === 'custom') {
     const latestValue = latest.__value;
     if (latestValue === null) {
       return {
@@ -79,7 +82,7 @@ function mergeModified(
     };
   } else if (
     base.__type === latest.__type &&
-    /* type checker reminder */ base.__type !== 'custom' &&
+    base.__type !== 'custom' &&
     latest.__type !== 'custom' &&
     base.__value !== base.__newValue
   ) {
@@ -91,6 +94,7 @@ function mergeModified(
     return inflate(latest);
   }
 }
+
 
 function revertModified(state: HardwareVarState): HardwareVarState {
   if (state.__type === 'custom') {
@@ -104,11 +108,11 @@ function revertModified(state: HardwareVarState): HardwareVarState {
       return {
         __type: 'custom',
         __value: Object.keys(value).reduce(
-          (acc, key) => ({
-            ...acc,
-            [key]: inflate(value[key]),
-          }),
-          {},
+            (acc, key) => ({
+              ...acc,
+              [key]: inflate(value[key]),
+            }),
+            {},
         ),
       };
     }
@@ -128,18 +132,18 @@ const initialState: HardwareState = {
 };
 
 const hardwareReducer = (
-  state: HardwareState = initialState,
-  action:
-    | ReceiveHardwareAction
-    | UpdateHardwareAction
-    | SaveHardwareAction
-    | RefreshHardwareAction,
+    state: HardwareState = initialState,
+    action:
+        | ReceiveHardwareAction
+        | UpdateHardwareAction
+        | SaveHardwareAction
+        | RefreshHardwareAction,
 ): HardwareState => {
   switch (action.type) {
     case 'RECEIVE_HARDWARE':
       return {
         ...state,
-        hardwareRoot:  mergeModified(state.hardwareRoot, action.hardwareRoot),
+        hardwareRoot: mergeModified(state.hardwareRoot, action.hardwareRoot),
       };
     case 'UPDATE_HARDWARE':
       return {
