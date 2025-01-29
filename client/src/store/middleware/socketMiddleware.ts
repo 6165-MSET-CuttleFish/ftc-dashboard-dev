@@ -63,7 +63,7 @@ const socketMiddleware: Middleware<Record<string, unknown>, RootState> =
       case GET_ROBOT_STATUS:
       case 'GET_HARDWARE':
       case 'UPDATE_HARDWARE': {
-        if (socket.readyState === WebSocket.OPEN) {
+        if (socket !== undefined && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify(action));
         }
         break;

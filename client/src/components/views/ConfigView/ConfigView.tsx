@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 
-import CustomVariable from './CustomVariable';
+import CustomVariable from '../ConfigView/CustomVariable';
 import BaseView, {
   BaseViewProps,
   BaseViewHeadingProps,
