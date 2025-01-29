@@ -20,11 +20,11 @@ function inflate(v: HardwareVar): HardwareVarState {
       return {
         __type: 'custom',
         __value: Object.keys(value).reduce(
-            (acc, key) => ({
-              ...acc,
-              [key]: inflate(value[key]),
-            }),
-            {},
+          (acc, key) => ({
+            ...acc,
+            [key]: inflate(value[key]),
+          }),
+          {},
         ),
       };
     }
@@ -39,8 +39,8 @@ function inflate(v: HardwareVar): HardwareVarState {
 
 // merge modified, matching members of base into latest
 function mergeModified(
-    base: HardwareVarState,
-    latest: HardwareVar,
+  base: HardwareVarState,
+  latest: HardwareVar,
 ): HardwareVarState {
   if (base.__type === 'custom' && latest.__type === 'custom') {
     const latestValue = latest.__value;
@@ -53,35 +53,35 @@ function mergeModified(
       return {
         __type: 'custom',
         __value: Object.keys(latestValue).reduce(
-            (acc, key) =>
-                base.__value !== null && key in base.__value
-                    ? {
-                      ...acc,
-                      [key]: mergeModified(base.__value[key], latestValue[key]),
-                    }
-                    : {
-                      ...acc,
-                      [key]: inflate(latestValue[key]),
-                    },
-            {},
+          (acc, key) =>
+            base.__value !== null && key in base.__value
+              ? {
+                  ...acc,
+                  [key]: mergeModified(base.__value[key], latestValue[key]),
+                }
+              : {
+                  ...acc,
+                  [key]: inflate(latestValue[key]),
+                },
+          {},
         ),
       };
     }
   } else if (
-      base.__type === 'enum' &&
-      latest.__type === 'enum' &&
-      base.__enumClass === latest.__enumClass &&
-      base.__value !== base.__newValue
+    base.__type === 'enum' &&
+    latest.__type === 'enum' &&
+    base.__enumClass === latest.__enumClass &&
+    base.__value !== base.__newValue
   ) {
     return {
       ...base,
       __value: latest.__value,
     };
   } else if (
-      base.__type === latest.__type &&
-      /* type checker reminder */ base.__type !== 'custom' &&
-      latest.__type !== 'custom' &&
-      base.__value !== base.__newValue
+    base.__type === latest.__type &&
+    /* type checker reminder */ base.__type !== 'custom' &&
+    latest.__type !== 'custom' &&
+    base.__value !== base.__newValue
   ) {
     return {
       ...base,
@@ -104,11 +104,11 @@ function revertModified(state: HardwareVarState): HardwareVarState {
       return {
         __type: 'custom',
         __value: Object.keys(value).reduce(
-            (acc, key) => ({
-              ...acc,
-              [key]: inflate(value[key]),
-            }),
-            {},
+          (acc, key) => ({
+            ...acc,
+            [key]: inflate(value[key]),
+          }),
+          {},
         ),
       };
     }
@@ -128,18 +128,18 @@ const initialState: HardwareState = {
 };
 
 const hardwareReducer = (
-    state: HardwareState = initialState,
-    action:
-        | ReceiveHardwareAction
-        | UpdateHardwareAction
-        | SaveHardwareAction
-        | RefreshHardwareAction,
+  state: HardwareState = initialState,
+  action:
+    | ReceiveHardwareAction
+    | UpdateHardwareAction
+    | SaveHardwareAction
+    | RefreshHardwareAction,
 ): HardwareState => {
   switch (action.type) {
     case 'RECEIVE_HARDWARE':
       return {
         ...state,
-        hardwareRoot: mergeModified(state.hardwareRoot, action.hardwareRoot),
+        hardwareRoot:  mergeModified(state.hardwareRoot, action.hardwareRoot),
       };
     case 'UPDATE_HARDWARE':
       return {

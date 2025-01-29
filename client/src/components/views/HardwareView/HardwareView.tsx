@@ -1,7 +1,6 @@
 import { useSelector } from 'react-redux';
 
-import CustomVariable from "../ConfigView/CustomVariable";
-
+import CustomVariable from '../ConfigView/CustomVariable';
 import BaseView, {
   BaseViewProps,
   BaseViewHeadingProps,
@@ -20,7 +19,6 @@ import {
   HardwareVarState,
   CustomVarState,
 } from '@/store/types/hardware';
-
 
 function validAndModified(state: HardwareVarState): HardwareVar | null {
   if (state.__type === 'custom') {
@@ -96,7 +94,7 @@ const HardwareView = ({
     <BaseView isUnlocked={isUnlocked}>
       <div className="flex">
         <BaseViewHeading isDraggable={isDraggable}>
-          Hardwareuration
+          Hardware
         </BaseViewHeading>
         <BaseViewIcons>
           <BaseViewIconButton

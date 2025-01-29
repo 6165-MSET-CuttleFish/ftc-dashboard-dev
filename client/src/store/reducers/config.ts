@@ -139,7 +139,7 @@ const configReducer = (
     case 'RECEIVE_CONFIG':
       return {
         ...state,
-        configRoot: mergeModified(state.configRoot, action.configRoot),
+        configRoot:  mergeModified(state.configRoot, action.configRoot),
       };
     case 'UPDATE_CONFIG':
       return {

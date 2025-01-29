@@ -577,6 +577,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     motors.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
                     motors.putVariable("Port", createVariableFromDouble(motorEx.getPortNumber()));
                 }
+                motors.putVariable("Test motor", createVariableFromDouble(23424.433));
             }
         });
 
@@ -590,6 +591,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     servos.putVariable("Position", createVariableFromDouble(servo.getPosition()));
                     servos.putVariable("Port", createVariableFromDouble(servo.getPortNumber()));
                 }
+                motors.putVariable("test server", createVariableFromDouble(5757.099));
             }
         });
 
@@ -1334,17 +1336,17 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         (new Thread() {
             @Override
             public void run() {
-                withConfigRoot(new CustomVariableConsumer() {
+                withHardwareRoot(new CustomVariableConsumer() {
                     @Override
-                    public void accept(CustomVariable configRoot) {
+                    public void accept(CustomVariable hardwareRoot) {
                         for (String[] var : varsToRemove) {
                             String category = var[0];
                             String name = var[1];
                             CustomVariable catVar =
-                                    (CustomVariable) configRoot.getVariable(category);
+                                    (CustomVariable) hardwareRoot.getVariable(category);
                             catVar.removeVariable(name);
                             if (catVar.size() == 0) {
-                                configRoot.removeVariable(category);
+                                hardwareRoot.removeVariable(category);
                             }
                         }
                         varsToRemove.clear();
