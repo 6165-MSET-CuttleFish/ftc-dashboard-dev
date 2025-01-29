@@ -583,7 +583,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                 motors.putVariable("test", createVariableFromDouble(23424.433));
             }
         });
-        ConfigVariable v = motors.getVariable("test");
+        ConfigVariable<?> v = motors.getVariable("test");
 
         if (v == null) {
             System.out.println("MOTOR IS NULL");
@@ -1079,6 +1079,15 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         core.updateConfig();
     }
 
+
+
+    /**
+     * Sends updated configuration data to all instance clients.
+     */
+    public void updateHardware() {
+        core.updateHardware();
+    }
+
     /**
      * Executes {@param function} in an exclusive context for thread-safe config tree modification
      * and calls {@link #updateConfig()} to keep clients up to date.
@@ -1165,9 +1174,9 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     public <T> void addHardwareVariable(final String category, final String name,
                                       final ValueProvider<T> provider,
                                       final boolean autoRemove) {
-        withConfigRoot(new CustomVariableConsumer() {
+        withHardwareRoot(new CustomVariableConsumer() {
             @Override
-            public void accept(CustomVariable configRoot) {
+            public void accept(CustomVariable hardwareRoot) {
                 core.addHardwareVariable(category, name, provider);
 
                 if (autoRemove) {
