@@ -5,17 +5,11 @@ import com.acmerobotics.dashboard.message.Message;
 import com.acmerobotics.dashboard.message.MessageType;
 
 public class ReceiveHardware extends Message {
-    private final CustomVariable var;
+    private CustomVariable hardwareRoot;
 
-    public ReceiveHardware(CustomVariable var) {
+    public ReceiveHardware(CustomVariable hardwareRoot) {
         super(MessageType.RECEIVE_HARDWARE);
-        this.var = var;
-        System.out.println("ReceiveHardware created. Is var null? " + (var == null));
-    }
 
-    public CustomVariable getVar() {
-
-        return var;
+        this.hardwareRoot = hardwareRoot;
     }
 }
-

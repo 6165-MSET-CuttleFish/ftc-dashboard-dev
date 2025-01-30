@@ -156,7 +156,7 @@ public class DashboardCore {
                         return true;
 
                     case SAVE_HARDWARE:
-                        withConfigRoot(new CustomVariableConsumer() {
+                        withHardwareRoot(new CustomVariableConsumer() {
                             @Override
                             public void accept(CustomVariable hardwareRoot) {
                                 hardwareRoot.update(((SaveHardware) message).getHardwareDiff());
@@ -224,15 +224,6 @@ public class DashboardCore {
      */
     public void setTelemetryTransmissionInterval(int newTransmissionInterval) {
         telemetryTransmissionInterval = newTransmissionInterval;
-    }
-
-    /**
-     * Sends updated configuration data to all instance clients.
-     */
-    public void updateHardware() {
-        hardwareRoot.with(v -> {
-            sendAll(new ReceiveHardware(v));
-        });
     }
 
     /**
@@ -350,6 +341,14 @@ public class DashboardCore {
         });
     }
 
+    /**
+     * Sends updated configuration data to all instance clients.
+     */
+    public void updateHardware() {
+        hardwareRoot.with(v -> {
+            sendAll(new ReceiveHardware(v));
+        });
+    }
 
     public void sendAll(Message message) {
         sockets.with(l -> {

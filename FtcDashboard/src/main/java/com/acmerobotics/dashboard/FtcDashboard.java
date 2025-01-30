@@ -583,7 +583,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                 motors.putVariable("test", createVariableFromDouble(23424.433));
             }
         });
-        ConfigVariable v = motors.getVariable("test");
+        ConfigVariable<?> v = motors.getVariable("test");
 
         if (v == null) {
             System.out.println("MOTOR IS NULL");
@@ -705,7 +705,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     }
 
     private FtcDashboard() {
-        System.out.println("FTC DASH PRINT");
         core.withConfigRoot(new CustomVariableConsumer() {
             @Override
             public void accept(CustomVariable configRoot) {
@@ -1080,6 +1079,15 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         core.updateConfig();
     }
 
+
+
+    /**
+     * Sends updated configuration data to all instance clients.
+     */
+    public void updateHardware() {
+        core.updateHardware();
+    }
+
     /**
      * Executes {@param function} in an exclusive context for thread-safe config tree modification
      * and calls {@link #updateConfig()} to keep clients up to date.
@@ -1140,6 +1148,52 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
      */
     public void removeConfigVariable(String category, String name) {
         core.removeConfigVariable(category, name);
+    }
+
+    /**
+     * Add config variable with custom provider that is automatically removed when op mode ends.
+     *
+     * @param category top-level category
+     * @param name     variable name
+     * @param provider getter/setter for the variable
+     * @param <T>      variable type
+     */
+    public <T> void addHardwareVariable(String category, String name, ValueProvider<T> provider) {
+        core.addHardwareVariable(category, name, provider);
+    }
+
+    /**
+     * Add config variable with custom provider.
+     *
+     * @param category   top-level category
+     * @param name       variable name
+     * @param provider   getter/setter for the variable
+     * @param autoRemove if true, the variable is removed on op mode termination
+     * @param <T>        variable type
+     */
+    public <T> void addHardwareVariable(final String category, final String name,
+                                      final ValueProvider<T> provider,
+                                      final boolean autoRemove) {
+        withHardwareRoot(new CustomVariableConsumer() {
+            @Override
+            public void accept(CustomVariable hardwareRoot) {
+                core.addHardwareVariable(category, name, provider);
+
+                if (autoRemove) {
+                    varsToRemove.add(new String[] {category, name});
+                }
+            }
+        });
+    }
+
+    /**
+     * Remove a config variable.
+     *
+     * @param category top-level category
+     * @param name     variable name
+     */
+    public void removeHardwareVariable(String category, String name) {
+        core.removeHardwareVariable(category, name);
     }
 
     /**

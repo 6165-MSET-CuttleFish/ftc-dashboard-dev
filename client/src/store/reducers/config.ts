@@ -42,6 +42,7 @@ function mergeModified(
   base: ConfigVarState,
   latest: ConfigVar,
 ): ConfigVarState {
+  console.log('mergeModified in config called with:', { base, latest });
   if (base.__type === 'custom' && latest.__type === 'custom') {
     const latestValue = latest.__value;
     if (latestValue === null) {
