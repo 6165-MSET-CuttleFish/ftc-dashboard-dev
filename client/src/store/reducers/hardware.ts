@@ -42,7 +42,7 @@ function mergeModified(
   base: HardwareVarState,
   latest: HardwareVar
 ): HardwareVarState {
-  console.log('mergeModified called with:', { base, latest });
+  console.log('mergeModified in hardware called with:', { base, latest });
   /* if (base === null || latest === null) {
     return inflate(latest);
   } else  */if (base.__type === 'custom' && latest.__type === 'custom') {
