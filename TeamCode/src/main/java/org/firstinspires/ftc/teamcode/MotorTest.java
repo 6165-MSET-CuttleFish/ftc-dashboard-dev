@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 @TeleOp(name="Motor Test", group="Simple Testing")
 public class MotorTest extends LinearOpMode {
 
-    public static String name = "br";
+    public static String name = "motor0";
     public static double power = 0;
     DcMotorEx motor;
     String lastName = name;

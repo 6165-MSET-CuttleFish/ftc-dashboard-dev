@@ -1,12 +1,9 @@
 package com.acmerobotics.dashboard.config.reflection;
-
-import com.acmerobotics.dashboard.config.ConstantProvider;
 import com.acmerobotics.dashboard.config.VariableProvider;
 import com.acmerobotics.dashboard.config.variable.BasicVariable;
 import com.acmerobotics.dashboard.config.variable.ConfigVariable;
 import com.acmerobotics.dashboard.config.variable.CustomVariable;
 import com.acmerobotics.dashboard.config.variable.VariableType;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -134,7 +131,6 @@ public class ReflectionConfig {
     }
 
     public static ConfigVariable<Double> createVariableFromDouble(double value) {
-        System.out.println("createVariableFromDouble value: " + value);
-        return new BasicVariable<>(VariableType.DOUBLE, new VariableProvider<>(value));
+        return new BasicVariable<>(new VariableProvider<>(value));
     }
 }

@@ -162,6 +162,7 @@ public class DashboardCore {
                                 hardwareRoot.update(((SaveHardware) message).getHardwareDiff());
                             }
                         });
+                        return true;
 
                     default:
                         return false;
