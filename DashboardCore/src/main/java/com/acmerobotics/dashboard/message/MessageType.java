@@ -47,7 +47,7 @@ public enum MessageType {
     RECEIVE_IMAGE(ReceiveImage.class),
 
     /* gamepad */
-    RECEIVE_GAMEPAD_STATE(ReceiveGamepadState.class);
+    RECEIVE_GAMEPAD_STATE(ReceiveGamepadState.class); 
 
     final Class<? extends Message> msgClass;
 
