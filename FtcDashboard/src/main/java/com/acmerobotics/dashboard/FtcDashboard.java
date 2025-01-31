@@ -89,7 +89,6 @@ import org.firstinspires.ftc.robotserver.internal.webserver.MimeTypesUtil;
  */
 public class FtcDashboard implements OpModeManagerImpl.Notifications {
     private boolean enableDiagnostics = true;
-    JsonObject hardwareState;
 
     private static final String TAG = "FtcDashboard";
 
@@ -601,25 +600,12 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     motorVar.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
                     motorVar.putVariable(s + " Port", createVariableFromDouble(motorEx.getPortNumber()));
 
-
-
-//                    m.getArmingState(
-//                    DcMotorController controller = motorEx.getController();
-//                    if (controller instanceof LynxDcMotorController) {
-//                        LynxDcMotorController lynxController = (LynxDcMotorController) controller;
-//                        String hubType = lynxController. ? "Control Hub" : "Expansion Hub";
-//                        motorVar.putVariable("Hub", createVariableFromString(hubType));
-//                    } else {
-//                        motorVar.putVariable("Hub", createVariableFromString("Unknown Hub"));
-//                    }
-
-                motors.putVariable(o.opMode.hardwareMap.getNamesOf(motorEx).toArray()[0].toString(), motorVar);
-}
-                motors.putVariable("test", createVariableFromDouble(23424.433));
+                    motors.putVariable(o.opMode.hardwareMap.getNamesOf(motorEx).toArray()[0].toString(), motorVar);
+                }
             }
         });
-        ConfigVariable<?> v = motors.getVariable("test");
 
+        motors.putVariable("test motor", createVariableFromDouble(23424.433));
 
         hardwareRoot.putVariable("Motors", motors);
 
@@ -646,13 +632,13 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
                     servoVar.putVariable("Position", createVariableFromDouble(servo.getPosition()));
                     servoVar.putVariable(s + " Port", createVariableFromDouble(servo.getPortNumber()));
-                    servos.putVariable(servo.getDeviceName(), servoVar);
+
+                    servos.putVariable(o.opMode.hardwareMap.getNamesOf(servo).toArray()[0].toString(), servoVar);
                 }
-                servos.putVariable("test servo", createVariableFromDouble(5757.099));
             }
         });
 
-        //System.out.println("servos in ftcdashboard.java: " + servos.getVariable("test servo").getValue());
+        servos.putVariable("test servo", createVariableFromDouble(5757.099));
 
         hardwareRoot.putVariable("Servos", servos);
     }
@@ -1553,6 +1539,4 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     public void toggleDiagnostics(boolean enabled) {
         enableDiagnostics = enabled;
     }
-
-
 }
