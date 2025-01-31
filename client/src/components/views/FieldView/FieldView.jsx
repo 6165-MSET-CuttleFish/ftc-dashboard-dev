@@ -20,14 +20,18 @@ class FieldView extends React.Component {
     this.handleClearData = this.handleClearData.bind(this);
 
     this.overlay = { ops: [] };
+
+    this.isRunning = false;
   }
 
   componentDidMount() {
     this.field = new Field(this.canvasRef.current);
     this.renderField();
+
   }
 
   componentDidUpdate(prevProps) {
+
     if (this.props.telemetry !== prevProps.telemetry) {
       this.overlay = this.props.telemetry.reduce(
         (acc, { field, fieldOverlay }) =>
@@ -39,18 +43,21 @@ class FieldView extends React.Component {
         this.overlay
       );
       this.field.setOverlay(this.overlay);
+      if (this.props.activeOpModeStatus == OpModeStatus.INIT && this.isRunning == false) {
+        this.handleClearData();
+        this.isRunning = true;
+        console.error("Cleared!");
+        console.error(this.field.replay);
+    }
       this.renderField();
     }
-    if (this.props.activeOpModeStatus !== prevProps.activeOpModeStatus) {
-      if (this.props.activeOpModeStatus == OpModeStatus.STOPPED) {
+
+    if (this.props.activeOpModeStatus == OpModeStatus.STOPPED && this.isRunning == true) {
         this.handleSaveToFile();
+        this.isRunning = false;
         console.error("Saved!");
-      }
-      else if (this.props.activeOpModeStatus == OpModeStatus.RUNNING) {
-        this.handleClearData(prevProps);
-        console.error("Cleared!");
-      }
     }
+
 
   }
 
@@ -68,9 +75,9 @@ class FieldView extends React.Component {
       console.error('No data available to save.');
     }
   }
-  handleClearData(prevProps) {
+  handleClearData() {
       if (this.field) {
-        this.field.clearData(prevProps.telemetry[0].timestamp);
+        this.field.clearData();
       }
     }
 

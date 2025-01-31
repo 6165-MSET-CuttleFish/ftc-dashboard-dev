@@ -1,4 +1,5 @@
 import { cloneDeep } from 'lodash';
+import { findDOMNode } from 'react-dom';
 
 
 const SAVE_IGNORE = ["alpha", "image"]; //change this based on what you're displaying
@@ -89,16 +90,20 @@ export default class Field {
     this.fileOutput = "";
     this.startTime = Date.now()
     this.replay = "";
+    this.prevReplayLine = -1;
+    this.prevElapsedTime = 0;
   }
   getData(){
     return(this.fileOutput);
   }
 
-  clearData(time){
+  clearData(){
       this.fileOutput = "";
-      this.startTime = 0;
+      this.startTime = Date.now();
+      this.prevReplayLine = -1;
     }
 
+    /* Old addreplay
   addReplay(files){
     this.replay = ""
       for (let i = 0; i < files.length; i++) {
@@ -114,30 +119,95 @@ export default class Field {
         reader.readAsText(file);
       }
   }
+*/
 
 
-  loadReplaysWithField(width, height, fieldSize, fileContent, currTime) {
-    const lines = fileContent.split('\n');
-    let ops = [];
-    lines.forEach((line, index) => {
+
+
+
+addReplay(files) {
+  let allLines = [];
+
+//  // Add current replay lines
+//  if (this.replay) {
+//    const replayLines = this.replay.split('\n');
+//    replayLines.forEach(line => {
+//      const timestamp = parseInt(line.split('@')[0]);
+//      if (!isNaN(timestamp)) {
+//        allLines.push({ line, timestamp });
+//      }
+//    });
+//  }
+
+  // Read lines from the files and add them to allLines
+  let filesLoaded = 0;
+
+  for (const file of files) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const fileContent = e.target.result;
+      const fileLines = fileContent.split('\n');
+
+      fileLines.forEach(line => {
         const timestamp = parseInt(line.split('@')[0]);
-        if (Math.abs(timestamp - currTime) < 40) {
-            ops.push(JSON.parse(line.split('@')[1]));
-//            console.error(ops);
+        if (!isNaN(timestamp)) {
+          allLines.push({ line, timestamp });
+        }
+      });
 
-            }
+      filesLoaded++;
 
-    });
+      // When all files are loaded, sort and update the replay
+      if (filesLoaded === files.length) {
+        // Sort lines by timestamp
+        allLines.sort((a, b) => a.timestamp - b.timestamp);
+
+        // Join the sorted lines back into a single string
+        this.replay = allLines.map(item => item.line).join('\n');
+        console.error(this.replay);  // This will show the updated replay
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+
+
+  loadReplaysWithField(width, height, fieldSize, fileContent, currTime, deltaTime) {
+    const lines = fileContent.split('\n');
+    let replayOps = [];
+    let maxIndex = 0;
+    let stop = false;
+    for (let i = this.prevReplayLine + 1; i < lines.length && !stop; i++) {
+      stop = false;
+      let line = lines[i];
+      if (parseInt(line.split('@')[0]) - currTime < deltaTime/2) {
+        replayOps.push(JSON.parse(line.split('@')[1]));
+        maxIndex = i;
+      } else { stop = true; }
+      this.prevReplayLine = maxIndex;
+    }
+
+    console.error(deltaTime);
+
+    console.error("prev: " + this.prevReplayLine);
 //    console.log("Operations to render:", this.overlay.ops);  //debug
-//    console.log("Replay Operations to render:", ops); //debug
-    //ops = ops.concat(this.overlay.ops);
+    // console.log("Replay Operations to render:", replayOps); //debug
+//    console.log("time: " ,currTime);
+
+    for (let op of this.overlay.ops) {
+      if (!(SAVE_IGNORE.includes(op.type))){
+        this.fileOutput = (this.fileOutput || '') + (currTime) + "@" + JSON.stringify(op) + '\n';
+      }
+    }
+
+
     this.renderField(
       (width - fieldSize) / 2,
       (height - fieldSize) / 2,
       fieldSize,
       fieldSize,
-      this.overlay.ops,
-      ops,
+      replayOps.concat(this.overlay.ops),
       currTime,
     );
 
@@ -214,6 +284,10 @@ export default class Field {
 
     let elapsedTime = Date.now() - this.startTime;
 
+    let deltaTime = elapsedTime - this.prevElapsedTime;
+
+    this.prevElapsedTime = elapsedTime;
+
 
 //    this.renderField(
 //          (width - fieldSize) / 2,
@@ -224,10 +298,10 @@ export default class Field {
 //          [],
 //          elapsedTime,
 //        );
-    this.loadReplaysWithField(width, height, fieldSize, this.replay, elapsedTime);
+    this.loadReplaysWithField(width, height, fieldSize, this.replay, elapsedTime, deltaTime);
   }
 
-  renderField(x, y, width, height, ops, replayops, elapsedTime) {
+  renderField(x, y, width, height, ops) {
     const o = this.options;
     this.ctx.save();
 
@@ -265,11 +339,6 @@ export default class Field {
     this.ctx.lineCap = 'butt';
 
     for (let op of ops) {
-    //console.error( op.type); //debug
-      if (!(SAVE_IGNORE.includes(op.type))){
-        this.fileOutput = (this.fileOutput || '') + (elapsedTime) + "@" + JSON.stringify(op) + '\n'; //can change @ char if needed
-      }
-
       switch (op.type) {
         case 'scale':
           userScaleX = op.scaleX;
@@ -464,203 +533,6 @@ export default class Field {
           throw new Error(`unknown operation: ${op.type}`);
       }
     }
-    for (let op of replayops) {
-
-          switch (op.type) {
-            case 'scale':
-              userScaleX = op.scaleX;
-              userScaleY = op.scaleY;
-              setUserTransform();
-              break;
-            case 'rotation':
-              userRotation = op.rotation;
-              setUserTransform();
-              break;
-            case 'translate':
-              userOriginX = op.x;
-              userOriginY = op.y;
-              setUserTransform();
-              break;
-            case 'fill':
-              this.ctx.fillStyle = op.color;
-              break;
-            case 'stroke':
-              this.ctx.strokeStyle = op.color;
-              break;
-            case 'strokeWidth':
-              this.ctx.lineWidth = op.width;
-              break;
-            case 'circle':
-              this.ctx.beginPath();
-              this.ctx.arc(op.x, op.y, op.radius, 0, 2 * Math.PI);
-
-              if (op.stroke) {
-                this.ctx.stroke();
-              } else {
-                this.ctx.fill();
-              }
-              break;
-            case 'polygon': {
-              this.ctx.beginPath();
-              const { xPoints, yPoints, stroke } = op;
-              this.ctx.fineMoveTo(xPoints[0], yPoints[0]);
-              for (let i = 1; i < xPoints.length; i++) {
-                this.ctx.fineLineTo(xPoints[i], yPoints[i]);
-              }
-              this.ctx.closePath();
-
-              if (stroke) {
-                this.ctx.stroke();
-              } else {
-                this.ctx.fill();
-              }
-              break;
-            }
-            case 'polyline': {
-              this.ctx.beginPath();
-              const { xPoints, yPoints } = op;
-              this.ctx.fineMoveTo(xPoints[0], yPoints[0]);
-              for (let i = 1; i < xPoints.length; i++) {
-                this.ctx.fineLineTo(xPoints[i], yPoints[i]);
-              }
-              this.ctx.stroke();
-              break;
-            }
-            case 'spline': {
-              this.ctx.beginPath();
-              const { ax, bx, cx, dx, ex, fx, ay, by, cy, dy, ey, fy } = op;
-              this.ctx.fineMoveTo(fx, fy);
-              for (let i = 0; i <= o.splineSamples; i++) {
-                const t = i / o.splineSamples;
-                const sx =
-                  (ax * t + bx) * (t * t * t * t) +
-                  cx * (t * t * t) +
-                  dx * (t * t) +
-                  ex * t +
-                  fx;
-                const sy =
-                  (ay * t + by) * (t * t * t * t) +
-                  cy * (t * t * t) +
-                  dy * (t * t) +
-                  ey * t +
-                  fy;
-
-                this.ctx.lineTo(sx, sy);
-              }
-              this.ctx.stroke();
-              break;
-            }
-            case 'image': {
-              const image = loadImage(op.path);
-
-              this.ctx.save();
-              if (op.usePageFrame) {
-                this.ctx.setTransform(pageTransform);
-              }
-
-              this.ctx.translate(op.x, op.y);
-
-              // Flipped to match text behavior.
-              if (!op.usePageFrame) {
-                this.ctx.scale(1, -1);
-              }
-
-              this.ctx.rotate(op.theta);
-              this.ctx.drawImage(
-                image,
-                -op.pivotX,
-                -op.pivotY,
-                op.width,
-                op.height,
-              );
-
-              this.ctx.restore();
-              break;
-            }
-            case 'text': {
-              this.ctx.save();
-
-              this.ctx.font = op.font;
-              if (op.usePageFrame) {
-                this.ctx.setTransform(pageTransform);
-              }
-
-              this.ctx.translate(op.x, op.y);
-
-              // I dislike this conceptually, but it makes things easier for users.
-              if (!op.usePageFrame) {
-                this.ctx.scale(1, -1);
-              }
-
-              this.ctx.rotate(op.theta);
-              if (op.stroke) {
-                this.ctx.strokeText(op.text, 0, 0);
-              } else {
-                this.ctx.fillText(op.text, 0, 0);
-              }
-
-              this.ctx.restore();
-              break;
-            }
-            case 'grid': {
-              this.ctx.save();
-              if (op.usePageFrame) {
-                this.ctx.setTransform(pageTransform);
-              }
-
-              this.ctx.translate(op.x, op.y);
-
-              // Flipped to match text behavior.
-              if (!op.usePageFrame) {
-                this.ctx.scale(1, -1);
-              }
-
-              this.ctx.rotate(op.theta);
-              this.ctx.translate(op.X, op.Y);
-
-              this.ctx.strokeStyle = this.options.gridLineColor;
-
-              const horSpacing = op.width / (op.numTicksX - 1);
-              const vertSpacing = op.height / (op.numTicksY - 1);
-
-              const { scalingX, scalingY } = this.ctx.getScalingFactors();
-
-              // TODO: is this calculation valid now that rotation can be set?
-              this.ctx.lineWidth =
-                this.options.gridLineWidth / (scalingY * devicePixelRatio);
-
-              for (let i = 0; i < op.numTicksX; i++) {
-                const lineX = -op.pivotX + horSpacing * i;
-                this.ctx.beginPath();
-                this.ctx.fineMoveTo(lineX, -op.pivotY);
-                this.ctx.fineLineTo(lineX, -op.pivotY + op.height);
-                this.ctx.stroke();
-              }
-
-              this.ctx.lineWidth =
-                this.options.gridLineWidth / (scalingX * devicePixelRatio);
-
-              for (let i = 0; i < op.numTicksY; i++) {
-                const lineY = -op.pivotY + vertSpacing * i;
-                this.ctx.beginPath();
-                this.ctx.fineMoveTo(-op.pivotX, lineY);
-                this.ctx.fineLineTo(-op.pivotX + op.width, lineY);
-                this.ctx.stroke();
-              }
-
-              this.ctx.restore();
-
-              break;
-            }
-            case 'alpha': {
-              this.ctx.globalAlpha = op.alpha;
-              break;
-            }
-            default:
-              throw new Error(`unknown operation: ${op.type}`);
-          }
-        }
-
     this.ctx.restore();
   }
 }
