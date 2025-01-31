@@ -5,12 +5,10 @@ export type Telemetry = TelemetryItem[];
 
 export type Overlay = {
   ops: DrawOp[];
-  isReplay?: boolean;
 };
 
 export type UpdateTelemetryAction = {
   type: typeof UPDATE_TELEMETRY;
-  overlay: Overlay;
 };
 
 export type TelemetryItem = {
