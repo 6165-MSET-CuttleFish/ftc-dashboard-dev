@@ -28,7 +28,7 @@ class FieldView extends React.Component {
     if (this.props.telemetry === prevProps.telemetry) return;
 
 console.error(this.props.telemetry);
-    this.overlay = this.props.telemetry.reduce(
+    this.overlay = this.props.telemetry.data.reduce(
       (acc, { field, fieldOverlay }) =>
         fieldOverlay.ops.length === 0
           ? acc
@@ -65,7 +65,9 @@ console.error(this.props.telemetry);
 }
 
 FieldView.propTypes = {
-  telemetry: PropTypes.arrayOf(PropTypes.object).isRequired,
+  telemetry: PropTypes.shape({
+    data: PropTypes.arrayOf(PropTypes.object), // Ensure data is an array of objects
+  }),
   isDraggable: PropTypes.bool,
   isUnlocked: PropTypes.bool,
 };
