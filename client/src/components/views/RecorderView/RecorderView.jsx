@@ -22,7 +22,7 @@ class RecorderView extends React.Component {
     this.telemetryReplay = [];
     this.currOps = [];
 
-    this.replayUpdateInterval = 100;
+    this.replayUpdateInterval = 20;
     this.replayOnStart = false;
 
     this.state = {
@@ -127,7 +127,7 @@ class RecorderView extends React.Component {
         }
       }
 
-      if (lastIndex + 1 >= this.telemetryReplay.length) {
+      if (lastIndex == this.telemetryReplay.length) {
         playbackComplete = true;
       }
 
@@ -141,37 +141,51 @@ class RecorderView extends React.Component {
   };
 
   componentDidUpdate(prevProps) {
-      if (this.props.activeOpModeStatus !== prevProps.activeOpModeStatus){
-          if (this.props.activeOpModeStatus === OpModeStatus.RUNNING && !this.isRunning) {
-              this.isRunning = true;
-              console.log("Start recording...");
-              this.startRecordingTime = Date.now();
-              this.telemetryRecording = [];
 
-              if (this.replayOnStart) {
-                  this.handleStartPlayback();
-              }
-          }
 
-          if (this.props.activeOpModeStatus === OpModeStatus.STOPPED && this.isRunning) {
-              this.isRunning = false;
-              console.log("Stop detected! Saving telemetry...");
-              this.handleSaveToLocalStorage();
-          }
+
+      if (this.props.activeOpModeStatus === OpModeStatus.STOPPED && this.isRunning) {
+          this.isRunning = false;
+          console.log("Stop detected! Saving telemetry...");
+          this.handleSaveToLocalStorage();
       }
       if (this.props.telemetry === prevProps.telemetry) {
           return; // No changes, so return early
       }
+      const overlay = this.props.telemetry.reduce(
+                  (acc, { fieldOverlay }) => ({
+                      ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+                  }),
+                  { ops: [] }
+                );
+            const prevOverlay = prevProps.telemetry.reduce(
+                        (acc, { fieldOverlay }) => ({
+                            ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+                        }),
+                        { ops: [] }
+                      );
+      if (JSON.stringify(overlay.ops) !== JSON.stringify(prevOverlay.ops)) {
+          console.error(overlay);
+          console.error(prevOverlay);
+          if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
+            this.isRunning = true;
+            console.log("Start recording...");
+            this.startRecordingTime = Date.now();
+            this.telemetryRecording = [];
+
+            if (this.replayOnStart) {
+              this.handleStartPlayback();
+            }
+          }
+      }
 
       if (this.isRunning) {
-          // Process telemetry data
           const overlay = this.props.telemetry.reduce(
-              (acc, { fieldOverlay }) => ({
-                  ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
-              }),
-              { ops: [] }
+            (acc, { fieldOverlay }) => ({
+                ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+            }),
+            { ops: [] }
           );
-
           if (overlay.ops.length > 0) {
               const relativeTimestamp = Date.now() - this.startRecordingTime;
               this.telemetryRecording.push({
@@ -324,8 +338,10 @@ class RecorderView extends React.Component {
                 marginRight: '0.5em',
               }}
             />
+          </div>
+          <div style={{ marginTop: '1.5em' }}>
             <label htmlFor="replayOnStart" style={{ marginRight: '0.5em' }}>
-              Start Replay on Load:
+              Start Replay with OpMode:
             </label>
             <input
               type="checkbox"

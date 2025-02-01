@@ -27,12 +27,12 @@ class FieldView extends React.Component {
   componentDidUpdate(prevProps) {
     if (this.props.telemetry === prevProps.telemetry) return;
 
-    this.overlay = this.props.telemetry.reduce((acc, { field, fieldOverlay, replayOverlay }) => ({
+    this.overlay = this.props.telemetry.reduce((acc, { field, replayOverlay, fieldOverlay }) => ({
       ops: [
         ...acc.ops,
         ...(field?.ops || []),
+        ...(replayOverlay?.ops || []),
         ...(fieldOverlay?.ops || []),
-        ...(replayOverlay?.ops || []) // Ensure replay overlay is always included
       ],
     }), { ops: [] });
 
