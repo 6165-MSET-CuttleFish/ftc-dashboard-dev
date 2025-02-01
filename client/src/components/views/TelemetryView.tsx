@@ -18,7 +18,7 @@ const TelemetryView = ({
   const [log, setLog] = useState<string[]>([]);
   const [data, setData] = useState<{ [key: string]: string }>({});
 
-  const packets = useSelector((state: RootState) => state.telemetry.data);
+  const packets = useSelector((state: RootState) => state.telemetry);
   useEffect(() => {
     if (packets.length === 0) {
       setLog([]);

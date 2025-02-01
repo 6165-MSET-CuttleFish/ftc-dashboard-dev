@@ -162,7 +162,7 @@ class GraphView extends Component<GraphViewProps, GraphViewState> {
       this.state.graphing && this.state.selectedKeys.length === 0;
     const showText = showNoNumeric || showEmpty;
 
-    const graphData = this.props.telemetry.data.map((packet) => [
+    const graphData = this.props.telemetry.map((packet) => [
       {
         name: 'time',
         value: packet.timestamp,

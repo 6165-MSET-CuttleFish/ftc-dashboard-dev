@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { updateTelemetryOverlay, receiveTelemetry } from '@/store/actions/telemetry';
+import { setReplayOverlay, receiveTelemetry } from '@/store/actions/telemetry';
 
 import BaseView, { BaseViewHeading } from '@/components/views/BaseView';
 import AutoFitCanvas from '@/components/Canvas/AutoFitCanvas';
@@ -22,7 +22,7 @@ class RecorderView extends React.Component {
     // Clear any existing playback interval
     if (this.playbackInterval) {
       clearInterval(this.playbackInterval);
-      this.playbackInterval = null; // Reset the interval
+      this.playbackInterval = null;
       console.log("Previous playback cleared.");
     }
 
@@ -53,78 +53,78 @@ class RecorderView extends React.Component {
         const entry = this.telemetryHistory[i];
 
         if (entry.timestamp <= timeRangeEnd) {
-          // Only process if we have a matching entry
-          if (this.props.activeOpModeStatus == OpModeStatus.STOPPED) {
-            this.props.receiveTelemetry([
-              {
-                data: { ops: [] }, // Placeholder for actual telemetry data
-                field: { ops: [] },
-                isReplay: true,
-                fieldOverlay: { ops: [] }, // Placeholder for overlays
-                log: [],
-                timestamp: entry.timestamp,
-              },
-            ]);
-        }
-          this.props.updateTelemetryOverlay({
-            ops : entry.ops,
-            isReplay: true,
-          });
+          // Reset telemetry data if op mode is stopped
+//           if (this.props.activeOpModeStatus === OpModeStatus.STOPPED) {
+//             this.props.receiveTelemetry([
+//               {
+//                 data: { ops: [] },
+//                 field: { ops: [] },
+//                 isReplay: true,
+//                 fieldOverlay: { ops: [] },
+//                 replayOverlay: { ops: [] },
+//                 log: [],
+//                 timestamp: entry.timestamp,
+//               },
+//             ]);
+//           }
+//
+          // Set replay overlay
 
+          this.props.setReplayOverlay(entry.ops);
 
-          lastIndex = i + 1; // Update lastIndex to prevent reprocessing this entry
+          lastIndex = i + 1;
         } else {
-            break;
-            }
-
-        // If we're still processing entries, don't stop the interval
-
+          break;
+        }
       }
-      if (lastIndex + 1>= this.telemetryHistory.length) {
+
+      if (lastIndex + 1 >= this.telemetryHistory.length) {
         playbackComplete = true;
       }
 
-      // Stop the interval if playback is complete
       if (playbackComplete) {
         console.log("Playback completed.");
         clearInterval(this.playbackInterval);
         this.playbackInterval = null;
       }
-    }, 25); // Update every 50ms
+    }, 25);
   };
 
   componentDidUpdate(prevProps) {
     if (this.props.telemetry.isReplay || this.props.telemetry === prevProps.telemetry) return;
 
-    if (this.props.activeOpModeStatus == OpModeStatus.INIT && this.isRunning == false) {
+    if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
       this.isRunning = true;
       this.startTime = Date.now();
       this.telemetryHistory = [];
     }
-    if (this.props.activeOpModeStatus == OpModeStatus.STOPPED && this.isRunning == true) {
+
+    if (this.props.activeOpModeStatus === OpModeStatus.STOPPED && this.isRunning) {
       this.isRunning = false;
     }
 
-    this.overlay = this.props.telemetry.data.reduce(
-      (acc, { field, fieldOverlay }) =>
-        fieldOverlay.ops?.length === 0
-          ? acc
-          : {
-              ops: [...(field.ops || []), ...(fieldOverlay.ops || [])],
-            },
+    // Aggregate ops from both field and fieldOverlay (ensure both are arrays)
+    const overlay = this.props.telemetry.reduce(
+      (acc, { field, fieldOverlay }) => ({
+        ops: [
+          ...acc.ops,
+          ...(field?.ops || []),            // Ensure field.ops is always an array
+          ...(fieldOverlay?.ops || []),      // Ensure fieldOverlay.ops is always an array
+        ],
+      }),
       { ops: [] }
     );
 
+    // Only record telemetry if it's not in replay mode
     if (!this.props.telemetry.isReplay) {
       const relativeTimestamp = Date.now() - this.startTime;
 
       this.telemetryHistory.push({
         timestamp: relativeTimestamp,
-        ops: this.overlay.ops,
+        ops: overlay.ops,
       });
-
-      //       console.log(`Telemetry added at timestamp: ${relativeTimestamp}`);
     }
+
   }
 
   render() {
@@ -165,24 +165,23 @@ class RecorderView extends React.Component {
   }
 }
 
+
 RecorderView.propTypes = {
-  telemetry: PropTypes.shape({
-    data: PropTypes.arrayOf(PropTypes.object),
-  }),
-  isDraggable: PropTypes.bool,
+  telemetry: PropTypes.array.isRequired,
   isUnlocked: PropTypes.bool,
-  updateTelemetryOverlay: PropTypes.func.isRequired, // Fixed prop name
+  activeOpModeStatus: PropTypes.string,
   receiveTelemetry: PropTypes.func.isRequired,
+  setReplayOverlay: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state) => ({
   telemetry: state.telemetry,
-  activeOpModeStatus: state.status.activeOpModeStatus,
+  activeOpModeStatus: state.status.activeOpModeStatus
 });
 
 const mapDispatchToProps = {
-  updateTelemetryOverlay, // Corrected function
-  receiveTelemetry, // Corrected function
+  setReplayOverlay,
+  receiveTelemetry,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(RecorderView);

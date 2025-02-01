@@ -27,13 +27,12 @@ class FieldView extends React.Component {
   componentDidUpdate(prevProps) {
     if (this.props.telemetry === prevProps.telemetry) return;
 
-// console.error(this.props.telemetry);
-    this.overlay = this.props.telemetry.data.reduce(
-      (acc, { field, fieldOverlay }) =>
+    this.overlay = this.props.telemetry.reduce(
+      (acc, { field, fieldOverlay, replayOverlay }) =>
         fieldOverlay.ops.length === 0
           ? acc
           : {
-              ops: [...field.ops, ...fieldOverlay.ops],
+              ops: [...field.ops, ...fieldOverlay.ops, ...replayOverlay && replayOverlay.ops ? replayOverlay.ops : []],
             },
       this.overlay,
     );
@@ -65,9 +64,7 @@ class FieldView extends React.Component {
 }
 
 FieldView.propTypes = {
-  telemetry: PropTypes.shape({
-    data: PropTypes.arrayOf(PropTypes.object), // Ensure data is an array of objects
-  }),
+  telemetry: PropTypes.arrayOf(PropTypes.object).isRequired,
   isDraggable: PropTypes.bool,
   isUnlocked: PropTypes.bool,
 };
