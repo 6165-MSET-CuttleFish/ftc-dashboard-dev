@@ -6,30 +6,27 @@ import com.acmerobotics.dashboard.CustomVariableConsumer;
 import com.acmerobotics.dashboard.DashboardCore;
 import com.acmerobotics.dashboard.config.variable.ConfigVariable;
 import com.acmerobotics.dashboard.config.variable.CustomVariable;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.Servo;
-
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
-import org.firstinspires.ftc.robotcore.internal.opmode.RegisteredOpModes;
 
 public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
     DashboardCore core;
     OpMode opMode;
+
     public HardwareOpMode(DashboardCore core) {
         this.core = core;
         this.opMode = this;
-        System.out.println("constructed");
+        System.out.println("HardwareOpMode constructed");
     }
 
     @Override
     public void init_loop() {
-        System.out.println("running1");
+        System.out.println("HardwareOpMode init_loop running");
         core.withHardwareRoot(new CustomVariableConsumer() {
             @Override
             public void accept(CustomVariable hardwareRoot) {
@@ -41,7 +38,7 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
 
     @Override
     public void loop() {
-        System.out.println("running2");
+        System.out.println("HardwareOpMode loop running");
         core.withHardwareRoot(new CustomVariableConsumer() {
             @Override
             public void accept(CustomVariable hardwareRoot) {
@@ -51,43 +48,42 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
         });
     }
 
-//    public boolean checkState(OpMode opMode) {
-//        return !(opMode instanceof OpModeManagerImpl.DefaultOpMode);
-//    }
-
     private void setHardware(CustomVariable hardwareRoot) {
         CustomVariable motorsVar = (CustomVariable) hardwareRoot.getVariable("Motors");
         if (motorsVar != null) {
             for (DcMotorSimple motor : opMode.hardwareMap.getAll(DcMotorSimple.class)) {
                 DcMotorEx motorEx = (DcMotorEx) motor;
-                String motorName = opMode.hardwareMap.getNamesOf(motorEx).iterator().next();
+                String motorName = getDeviceName(motorEx);
+                if (motorName == null) continue;
                 CustomVariable motorVar = (CustomVariable) motorsVar.getVariable(motorName);
                 if (motorVar != null) {
-                    ConfigVariable<?> powerVar = motorVar.getVariable("Power");
-                    ConfigVariable<?> positionVar = motorVar.getVariable("Target Position");
+                    ConfigVariable powerVar = motorVar.getVariable("Power");
+                    ConfigVariable targetPosVar = motorVar.getVariable("Target Position");
                     if (powerVar != null) {
                         double power = (double) powerVar.getValue();
                         motorEx.setPower(power);
                     }
-                    if (positionVar != null) {
-                        int position = (int) Math.round((double) positionVar.getValue());
-                        motorEx.setTargetPosition(position);
-                        motorEx.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    if (targetPosVar != null) {
+                        int position = (int) Math.round((double) targetPosVar.getValue());
+                        try {
+                            motorEx.setTargetPosition(position);
+                            motorEx.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                        } catch (Exception e) {
+                            System.out.println("Error setting target position for motor " + motorName + ": " + e);
+                        }
                     }
                 }
             }
         }
 
-        // Retrieve the "Servos" custom variable group
         CustomVariable servosVar = (CustomVariable) hardwareRoot.getVariable("Servos");
         if (servosVar != null) {
             for (Servo servo : opMode.hardwareMap.getAll(Servo.class)) {
-                // Find the servo's name in the hardware map
-                String servoName = servo.getDeviceName();
+                String servoName = getDeviceName(servo);
+                if (servoName == null) continue;
                 CustomVariable servoVar = (CustomVariable) servosVar.getVariable(servoName);
                 if (servoVar != null) {
-                    // Retrieve the position variable and set it, if present
-                    ConfigVariable<?> positionVar = servoVar.getVariable("Position");
+                    ConfigVariable positionVar = servoVar.getVariable("Position");
                     if (positionVar != null) {
                         double position = (double) positionVar.getValue();
                         servo.setPosition(position);
@@ -95,75 +91,72 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
                 }
             }
         }
-
     }
 
     private void addHardware(CustomVariable hardwareRoot) {
         CustomVariable motors = new CustomVariable();
-
         for (DcMotorSimple motor : opMode.hardwareMap.getAll(DcMotorSimple.class)) {
             CustomVariable motorVar = new CustomVariable();
             DcMotorEx motorEx = (DcMotorEx) motor;
+            String deviceName = getDeviceName(motorEx);
+            if (deviceName == null) continue;
 
-            String s = opMode.hardwareMap.getNamesOf(motorEx).toArray()[0].toString() + motorEx.getController().getConnectionInfo();
-
-            for (int i = 0; i < s.length(); i++) {
-                if (Character.isDigit(s.charAt(i))) {
-                    s = s.substring(i);
-                }
-            }
-
-            if (s.equals("173")) {
-                s = "Control Hub";
-            } else {
-                s = "Expansion Hub " + s;
-            }
+            String connectionInfo = motorEx.getController().getConnectionInfo();
+            String hubType = extractHubType(connectionInfo);
 
             motorVar.putVariable("Power", createVariableFromDouble(motorEx.getPower()));
             motorVar.putVariable("Current Position", createVariableFromDouble(motorEx.getCurrentPosition()));
             motorVar.putVariable("Target Position", createVariableFromDouble(motorEx.getTargetPosition()));
-            motorVar.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
-            motorVar.putVariable(s + " Port", createVariableFromDouble(motorEx.getPortNumber()));
+            motorVar.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit.AMPS)));
+            motorVar.putVariable(hubType + " Port", createVariableFromDouble(motorEx.getPortNumber()));
 
-            motors.putVariable(opMode.hardwareMap.getNamesOf(motorEx).toArray()[0].toString(), motorVar);
+            motors.putVariable(deviceName, motorVar);
         }
-
-
-        motors.putVariable("test motor", createVariableFromDouble(23424.433));
-
         hardwareRoot.putVariable("Motors", motors);
 
         CustomVariable servos = new CustomVariable();
-
-
         for (Servo servo : opMode.hardwareMap.getAll(Servo.class)) {
             CustomVariable servoVar = new CustomVariable();
+            String deviceName = getDeviceName(servo);
+            if (deviceName == null) continue;
 
-            String s = opMode.hardwareMap.getNamesOf(servo).toArray()[0].toString() + servo.getController().getConnectionInfo();
-
-            for (int i = 0; i < s.length(); i++) {
-                if (Character.isDigit(s.charAt(i))) {
-                    s = s.substring(i);
-                }
-            }
-
-            if (s.equals("173")) {
-                s = "Control Hub";
-            } else {
-                s = "Expansion Hub " + s;
-            }
+            String connectionInfo = servo.getController().getConnectionInfo();
+            String hubType = extractHubType(connectionInfo);
 
             servoVar.putVariable("Position", createVariableFromDouble(servo.getPosition()));
-            servoVar.putVariable(s + " Port", createVariableFromDouble(servo.getPortNumber()));
-
-            servos.putVariable(opMode.hardwareMap.getNamesOf(servo).toArray()[0].toString(), servoVar);
+            servoVar.putVariable(hubType + " Port", createVariableFromDouble(servo.getPortNumber()));
+            servos.putVariable(deviceName, servoVar);
         }
-
-
-
-        servos.putVariable("test servo", createVariableFromDouble(5757.099));
-
         hardwareRoot.putVariable("Servos", servos);
     }
 
+    private String getDeviceName(Object device) {
+        try {
+            if (!(device instanceof HardwareDevice)) {
+                return null;
+            }
+            java.util.Set<String> names = opMode.hardwareMap.getNamesOf((HardwareDevice) device);
+            if (names != null && !names.isEmpty()) {
+                return names.iterator().next();
+            }
+        } catch (Exception e) {
+            System.out.println("Error obtaining device name: " + e);
+        }
+        return null;
+    }
+
+    private String extractHubType(String connectionInfo) {
+        String result = connectionInfo;
+        for (int i = 0; i < result.length(); i++) {
+            if (Character.isDigit(result.charAt(i))) {
+                result = result.substring(i);
+                break;
+            }
+        }
+        if (result.equals("173")) {
+            return "Control Hub";
+        } else {
+            return "Expansion Hub " + result;
+        }
+    }
 }
