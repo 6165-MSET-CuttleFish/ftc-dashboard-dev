@@ -30,8 +30,10 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
         core.withHardwareRoot(new CustomVariableConsumer() {
             @Override
             public void accept(CustomVariable hardwareRoot) {
-                setHardware(hardwareRoot);
-                addHardware(hardwareRoot);
+                if (opMode.hardwareMap != null) {
+                    setHardware(hardwareRoot);
+                    addHardware(hardwareRoot);
+                }
             }
         });
     }
@@ -42,8 +44,10 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
         core.withHardwareRoot(new CustomVariableConsumer() {
             @Override
             public void accept(CustomVariable hardwareRoot) {
-                setHardware(hardwareRoot);
-                addHardware(hardwareRoot);
+                if (opMode.hardwareMap != null) {
+                    setHardware(hardwareRoot);
+                    addHardware(hardwareRoot);
+                }
             }
         });
     }
