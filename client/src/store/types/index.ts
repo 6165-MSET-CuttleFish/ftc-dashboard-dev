@@ -74,7 +74,7 @@ export type {
   GamepadSupportedStatus,
 } from './status';
 
-export { RECEIVE_TELEMETRY, UPDATE_TELEMETRY, CLEAR_TELEMETRY } from './telemetry';
+export { RECEIVE_TELEMETRY, UPDATE_TELEMETRY, } from './telemetry';
 export type {
   Telemetry,
   TelemetryItem,

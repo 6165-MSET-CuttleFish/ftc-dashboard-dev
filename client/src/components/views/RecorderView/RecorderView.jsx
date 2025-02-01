@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { updateTelemetryOverlay, clearTelemetry, receiveTelemetry } from '@/store/actions/telemetry';
+import { updateTelemetryOverlay, receiveTelemetry } from '@/store/actions/telemetry';
 
 import BaseView, { BaseViewHeading } from '@/components/views/BaseView';
 import AutoFitCanvas from '@/components/Canvas/AutoFitCanvas';
@@ -44,8 +44,7 @@ class RecorderView extends React.Component {
 
     this.playbackInterval = setInterval(() => {
       const elapsedTime = Date.now() - this.startTime;
-      const deltaTime = 50; // Time interval between updates
-      const timeRangeStart = elapsedTime;
+      const deltaTime = 25; // Time interval between updates
       const timeRangeEnd = elapsedTime + deltaTime / 2;
 
       console.log(`Elapsed time: ${elapsedTime}`);
@@ -53,31 +52,36 @@ class RecorderView extends React.Component {
       for (let i = lastIndex; i < this.telemetryHistory.length; i++) {
         const entry = this.telemetryHistory[i];
 
-        if (entry.timestamp >= timeRangeStart && entry.timestamp <= timeRangeEnd) {
+        if (entry.timestamp <= timeRangeEnd) {
           // Only process if we have a matching entry
-          this.props.receiveTelemetry([
-            {
-              data: { ops: [] }, // Placeholder for actual telemetry data
-              field: { ops: [] },
-              isReplay: true,
-              fieldOverlay: { ops: [] }, // Placeholder for overlays
-              log: [],
-              timestamp: entry.timestamp,
-            },
-          ]);
-
+          if (this.props.activeOpModeStatus == OpModeStatus.STOPPED) {
+            this.props.receiveTelemetry([
+              {
+                data: { ops: [] }, // Placeholder for actual telemetry data
+                field: { ops: [] },
+                isReplay: true,
+                fieldOverlay: { ops: [] }, // Placeholder for overlays
+                log: [],
+                timestamp: entry.timestamp,
+              },
+            ]);
+        }
           this.props.updateTelemetryOverlay({
-            ops: entry.ops,
+            ops : entry.ops,
             isReplay: true,
           });
 
+
           lastIndex = i + 1; // Update lastIndex to prevent reprocessing this entry
-        }
+        } else {
+            break;
+            }
 
         // If we're still processing entries, don't stop the interval
-        if (lastIndex >= this.telemetryHistory.length) {
-          playbackComplete = true;
-        }
+
+      }
+      if (lastIndex + 1>= this.telemetryHistory.length) {
+        playbackComplete = true;
       }
 
       // Stop the interval if playback is complete
@@ -86,7 +90,7 @@ class RecorderView extends React.Component {
         clearInterval(this.playbackInterval);
         this.playbackInterval = null;
       }
-    }, 50); // Update every 50ms
+    }, 25); // Update every 50ms
   };
 
   componentDidUpdate(prevProps) {
@@ -168,7 +172,6 @@ RecorderView.propTypes = {
   isDraggable: PropTypes.bool,
   isUnlocked: PropTypes.bool,
   updateTelemetryOverlay: PropTypes.func.isRequired, // Fixed prop name
-  clearTelemetry: PropTypes.func.isRequired,         // Fixed prop name
   receiveTelemetry: PropTypes.func.isRequired,
 };
 
@@ -179,7 +182,6 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = {
   updateTelemetryOverlay, // Corrected function
-  clearTelemetry,
   receiveTelemetry, // Corrected function
 };
 
