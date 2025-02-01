@@ -22,14 +22,12 @@ class RecorderView extends React.Component {
     this.telemetryReplay = [];
     this.currOps = [];
 
-    this.replayUpdateInterval = 20;
-    this.replayOnStart = false;
-
     this.state = {
       savedReplays: [],
       selectedReplay: '',
-      replayUpdateInterval: this.replayUpdateInterval,
-      replayOnStart: this.replayOnStart,
+      replayUpdateInterval: 20, // moved from this.replayUpdateInterval
+      replayOnStart: false, // moved from this.replayOnStart
+      autoSelect: false, // new state variable
     };
   }
 
@@ -41,7 +39,12 @@ class RecorderView extends React.Component {
     const keys = Object.keys(localStorage).filter((key) =>
       key.startsWith('field_replay_')
     );
-    this.setState({ savedReplays: keys });
+    this.setState({ savedReplays: keys }, () => {
+      // Automatically select all replays if autoSelect is true
+      if (this.state.autoSelect) {
+        this.handleLoadTelemetryByFilename({ target: { selectedOptions: Array.from(this.state.savedReplays.map(filename => ({ value: filename }))) } });
+      }
+    });
   };
 
   handleSaveToLocalStorage = () => {
@@ -66,19 +69,14 @@ class RecorderView extends React.Component {
     const maxStorageSize = 5 * 1024 * 1024; // 5MB in bytes
     if (totalSize + newDataSize > maxStorageSize) {
       console.error('Cannot save data. LocalStorage quota exceeded.');
-      // Optionally, remove the oldest data or clear out old replays to free space
-      // this.handleDeleteOldestReplay(); // Implement this function if needed
       return; // Prevent saving if exceeding quota
     }
-
 
     localStorage.setItem(storageKey, dataToSave);
     console.log(`Saved to localStorage with key: ${storageKey}`);
 
-
     this.loadSavedReplays(); // Refresh replay list
   };
-
 
   handleLoadTelemetryByFilename = (event) => {
     const selectedFiles = Array.from(event.target.selectedOptions, (option) => option.value);
@@ -153,12 +151,10 @@ class RecorderView extends React.Component {
     console.log(`Playback started at: ${this.startReplayTime}`);
 
     this.playbackInterval = setInterval(() => {
-
       const elapsedTime = Date.now() - this.startReplayTime;
-      const timeRangeEnd = elapsedTime + this.replayUpdateInterval / 2;
+      const timeRangeEnd = elapsedTime + this.state.replayUpdateInterval / 2;
 
       // Update the operations for each replay
-      
       for (let replayIndex = 0; replayIndex < this.telemetryReplay.length; replayIndex++) {
         let isUpdated = false;
         for (let i = lastIndex[replayIndex]; i < this.telemetryReplay[replayIndex].length; i++) {
@@ -177,10 +173,8 @@ class RecorderView extends React.Component {
         }
       }
 
-
       // Push the current operations to the overlay
       this.currOps = ops.flat();
-
 
       if (JSON.stringify(this.currOps).length > 0) {
         this.props.setReplayOverlay(this.currOps);
@@ -193,15 +187,14 @@ class RecorderView extends React.Component {
       if (playbackComplete) {
         this.clearPlayback();
         console.log('Playback completed.');
-
       }
-    }, this.replayUpdateInterval);
+    }, this.state.replayUpdateInterval);
   };
 
   clearPlayback() {
-      this.isReplaying = false;
-      clearInterval(this.playbackInterval);
-      this.playbackInterval = null;
+    this.isReplaying = false;
+    clearInterval(this.playbackInterval);
+    this.playbackInterval = null;
   }
 
   compareOverlays = (prevOverlay, currentOverlay) => {
@@ -248,7 +241,7 @@ class RecorderView extends React.Component {
         this.telemetryRecording = [];
         this.currOps = [];
 
-        if (this.replayOnStart) {
+        if (this.state.replayOnStart) {
           this.handleStartPlayback();
         }
       }
@@ -289,14 +282,17 @@ class RecorderView extends React.Component {
 
   handleReplayUpdateIntervalChange = (event) => {
     const value = parseInt(event.target.value, 10);
-    this.replayUpdateInterval = value;
     this.setState({ replayUpdateInterval: value });
   };
 
   handleReplayOnStartChange = (event) => {
     const checked = event.target.checked;
-    this.replayOnStart = checked;
     this.setState({ replayOnStart: checked });
+  };
+
+  handleAutoSelectChange = (event) => {
+    const checked = event.target.checked;
+    this.setState({ autoSelect: checked });
   };
 
   render() {
@@ -336,30 +332,35 @@ class RecorderView extends React.Component {
             <label htmlFor="replaySelector" style={{ fontWeight: 'bold', marginRight: '0.5em' }}>
               Select Replay:
             </label>
-            <select
-                  id="replaySelector"
-                  multiple
-                  value={this.state.selectedReplays}
-                  onChange={this.handleLoadTelemetryByFilename}
-                  style={{
-                    padding: '0.5em',
-                    fontSize: '14px',
-                    borderRadius: '4px',
-                    border: '1px solid #ccc',
-                    cursor: 'pointer',
-                    marginRight: '0.5em',
-                    height: '100px',
-                  }}
-                >
-                  {this.state.savedReplays.map((filename) => (
-                    <option key={filename} value={filename}>
-                      {filename.replace('field_replay_', '')}
-                    </option>
-                  ))}
-                </select>
+
+            {/* Container for the select dropdown */}
+            <div style={{ position: 'relative' }}>
+              <select
+                id="replaySelector"
+                multiple
+                value={this.state.selectedReplays}
+                onChange={this.handleLoadTelemetryByFilename}
+                style={{
+                  padding: '0.5em',
+                  fontSize: '14px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  cursor: 'pointer',
+                  marginRight: '0.5em',
+                  height: '100px',
+                  width: '200px', // Added a width to make it consistent
+                }}
+              >
+                {this.state.savedReplays.map((filename) => (
+                  <option key={filename} value={filename}>
+                    {filename.replace('field_replay_', '')}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
-              onClick={() => this.handleDeleteReplay(this.state.selectedReplay)}
+              onClick={() => this.handleDeleteReplay()}
               disabled={!this.state.selectedReplay}
               style={{
                 padding: '0.5em 1em',
@@ -393,7 +394,7 @@ class RecorderView extends React.Component {
                 marginLeft: '0.5em',
               }}
             >
-              Delete All Replays
+              Delete All
             </button>
           </div>
 
@@ -429,12 +430,27 @@ class RecorderView extends React.Component {
               }}
             />
           </div>
-
+          <div style={{ marginTop: '1.5em' }}>
+            <label htmlFor="autoSelect" style={{ marginRight: '0.5em' }}>
+              Auto Select Replays:
+            </label>
+            <input
+              type="checkbox"
+              id="autoSelect"
+              checked={this.state.autoSelect}
+              onChange={this.handleAutoSelectChange}
+              style={{
+                marginRight: '0.5em',
+              }}
+            />
+          </div>
         </div>
       </BaseView>
     );
   }
+
 }
+
 
 RecorderView.propTypes = {
   telemetry: PropTypes.array.isRequired,
