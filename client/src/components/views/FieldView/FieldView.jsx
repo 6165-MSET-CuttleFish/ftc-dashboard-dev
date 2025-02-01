@@ -27,7 +27,7 @@ class FieldView extends React.Component {
   componentDidUpdate(prevProps) {
     if (this.props.telemetry === prevProps.telemetry) return;
 
-console.error(this.props.telemetry);
+// console.error(this.props.telemetry);
     this.overlay = this.props.telemetry.data.reduce(
       (acc, { field, fieldOverlay }) =>
         fieldOverlay.ops.length === 0
