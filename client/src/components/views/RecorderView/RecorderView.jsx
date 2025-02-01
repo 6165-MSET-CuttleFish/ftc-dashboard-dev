@@ -7,6 +7,8 @@ import BaseView, { BaseViewHeading } from '@/components/views/BaseView';
 import AutoFitCanvas from '@/components/Canvas/AutoFitCanvas';
 
 import OpModeStatus from '@/enums/OpModeStatus';
+import { ReactComponent as DeleteSVG } from '@/assets/icons/delete.svg';
+import { ReactComponent as DownloadSVG } from '@/assets/icons/file_download.svg';
 
 class RecorderView extends React.Component {
   constructor(props) {
@@ -25,9 +27,10 @@ class RecorderView extends React.Component {
     this.state = {
       savedReplays: [],
       selectedReplay: '',
-      replayUpdateInterval: 20, // moved from this.replayUpdateInterval
-      replayOnStart: false, // moved from this.replayOnStart
-      autoSelect: false, // new state variable
+      replayUpdateInterval: 20,
+      replayOnStart: false,
+      autoSelect: false,
+      errorMessage: '',
     };
   }
 
@@ -40,10 +43,35 @@ class RecorderView extends React.Component {
       key.startsWith('field_replay_')
     );
     this.setState({ savedReplays: keys }, () => {
-      // Automatically select all replays if autoSelect is true
       if (this.state.autoSelect) {
         this.handleLoadTelemetryByFilename({ target: { selectedOptions: Array.from(this.state.savedReplays.map(filename => ({ value: filename }))) } });
       }
+    });
+  };
+
+  handleDownloadSelectedReplays = () => {
+    const { selectedReplays } = this.state;
+
+    if (!selectedReplays || selectedReplays.length === 0) {
+      return;
+    }
+
+    selectedReplays.forEach((filename) => {
+      const replayDataString = localStorage.getItem(filename);
+
+      if (!replayDataString) {
+        return;
+      }
+
+      const replayData = JSON.parse(replayDataString);
+
+      const blob = new Blob([JSON.stringify(replayData, null, 2)], { type: 'application/json' });
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename}.json`;
+
+      link.click();
     });
   };
 
@@ -52,30 +80,28 @@ class RecorderView extends React.Component {
     const formattedDate = currentDate.toISOString().split('.')[0]; // Removing milliseconds
     const storageKey = `field_replay_${formattedDate}`;
 
-    // Step 1: Get the current size of localStorage
     let totalSize = 0;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       totalSize += new Blob([localStorage.getItem(key)]).size;
     }
-    console.log('Current total localStorage size:', totalSize);
 
-    // Step 2: Calculate the size of the data you're about to save
     const dataToSave = JSON.stringify(this.telemetryRecording);
     const newDataSize = new Blob([dataToSave]).size;
-    console.log('Size of data to save:', newDataSize);
 
-    // Step 3: Check if saving this new data will exceed the localStorage quota (5MB)
-    const maxStorageSize = 5 * 1024 * 1024; // 5MB in bytes
+    const maxStorageSize = 5 * 1024 * 1024;
     if (totalSize + newDataSize > maxStorageSize) {
-      console.error('Cannot save data. LocalStorage quota exceeded.');
-      return; // Prevent saving if exceeding quota
-    }
+       this.setState({ errorMessage: 'Cannot save replay: LocalStorage quota exceeded.' });
+
+       setTimeout(() => {
+         this.setState({ errorMessage: '' });
+       }, 5000);
+       return;
+     }
 
     localStorage.setItem(storageKey, dataToSave);
-    console.log(`Saved to localStorage with key: ${storageKey}`);
 
-    this.loadSavedReplays(); // Refresh replay list
+    this.loadSavedReplays();
   };
 
   handleLoadTelemetryByFilename = (event) => {
@@ -83,10 +109,10 @@ class RecorderView extends React.Component {
     if (selectedFiles.length === 0) return;
 
     this.setState({
-      selectedReplay: selectedFiles[0],  // Update selectedReplay here
+      selectedReplay: selectedFiles[0],
     });
 
-    this.telemetryReplay = []; // Reset the array to hold new telemetry data
+    this.telemetryReplay = [];
 
     selectedFiles.forEach((filename) => {
       const savedTelemetry = localStorage.getItem(filename);
@@ -96,18 +122,16 @@ class RecorderView extends React.Component {
       }
     });
     this.setState({ selectedReplays: selectedFiles });
-    console.log(`Loaded telemetry from ${selectedFiles.join(', ')}`);
   };
 
   handleDeleteReplay = () => {
     const { selectedReplay } = this.state;
 
-    if (!selectedReplay) return; // No replay selected, do nothing
+    if (!selectedReplay) return;
 
     localStorage.removeItem(selectedReplay);
     this.telemetryReplay = [];
     this.currOps = [[]];
-    console.log(`Deleted replay: ${selectedReplay}`);
 
     this.setState((prevState) => ({
       savedReplays: prevState.savedReplays.filter((file) => file !== selectedReplay),
@@ -123,7 +147,6 @@ class RecorderView extends React.Component {
     savedReplays.forEach((filename) => localStorage.removeItem(filename));
     this.telemetryReplay = [];
     this.currOps = [[]];
-    console.log("Deleted all saved replays.");
 
     this.setState({ savedReplays: [], selectedReplay: '' });
   };
@@ -132,7 +155,6 @@ class RecorderView extends React.Component {
     if (this.playbackInterval) {
       clearInterval(this.playbackInterval);
       this.playbackInterval = null;
-      console.log('Previous playback cleared.');
     }
 
     this.isReplaying = true;
@@ -148,13 +170,10 @@ class RecorderView extends React.Component {
 
     this.startReplayTime = Date.now();
 
-    console.log(`Playback started at: ${this.startReplayTime}`);
-
     this.playbackInterval = setInterval(() => {
       const elapsedTime = Date.now() - this.startReplayTime;
       const timeRangeEnd = elapsedTime + this.state.replayUpdateInterval / 2;
 
-      // Update the operations for each replay
       for (let replayIndex = 0; replayIndex < this.telemetryReplay.length; replayIndex++) {
         let isUpdated = false;
         for (let i = lastIndex[replayIndex]; i < this.telemetryReplay[replayIndex].length; i++) {
@@ -162,7 +181,7 @@ class RecorderView extends React.Component {
 
           if (entry.timestamp <= timeRangeEnd) {
             if (!isUpdated) {
-              ops[replayIndex] = []; // Clear previous operations
+              ops[replayIndex] = [];
               isUpdated = true;
             }
             ops[replayIndex].push(...entry.ops);
@@ -173,7 +192,6 @@ class RecorderView extends React.Component {
         }
       }
 
-      // Push the current operations to the overlay
       this.currOps = ops.flat();
 
       if (JSON.stringify(this.currOps).length > 0) {
@@ -186,7 +204,6 @@ class RecorderView extends React.Component {
 
       if (playbackComplete) {
         this.clearPlayback();
-        console.log('Playback completed.');
       }
     }, this.state.replayUpdateInterval);
   };
@@ -204,12 +221,11 @@ class RecorderView extends React.Component {
   componentDidUpdate(prevProps) {
     if (this.props.activeOpModeStatus === OpModeStatus.STOPPED && this.isRunning) {
       this.isRunning = false;
-      console.log("Stop detected! Saving telemetry...");
       this.handleSaveToLocalStorage();
     }
 
     if (this.props.telemetry === prevProps.telemetry) {
-      return; // No changes, so return early
+      return;
     }
 
     const overlay = this.props.telemetry.reduce(
@@ -226,17 +242,10 @@ class RecorderView extends React.Component {
       { ops: [] }
     );
 
-    // Check if overlay has any undefined ops
-    if (overlay.ops.some(op => op === undefined)) {
-      console.error("Undefined operation found in current telemetry overlay!");
-      return; // Do not continue if there are undefined operations
-    }
-
     if (this.compareOverlays(prevOverlay, overlay)) {
 
       if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
         this.isRunning = true;
-        console.log("Start recording...");
         this.startRecordingTime = Date.now();
         this.telemetryRecording = [];
         this.currOps = [];
@@ -264,7 +273,6 @@ class RecorderView extends React.Component {
       }
     }
 
-    // Handle replay overlay
     if (this.isReplaying) {
       const replayOps = this.props.telemetry.reduce(
         (acc, { replayOverlay }) => ({
@@ -275,7 +283,6 @@ class RecorderView extends React.Component {
       const currOpsStr = JSON.stringify(this.currOps);
       if (replayOps.ops.length === 0 && currOpsStr !== JSON.stringify(replayOps.ops) && currOpsStr.length > 0) {
         this.props.setReplayOverlay(this.currOps);
-        console.warn("setting replay overlay");
       }
     }
   }
@@ -300,6 +307,19 @@ class RecorderView extends React.Component {
       <BaseView isUnlocked={this.props.isUnlocked}>
         <BaseViewHeading isDraggable={this.props.isDraggable}>
           Recorder
+          {this.state.errorMessage && (
+            <div style={{
+              color: '#d9534f',
+              padding: '5px',
+              fontSize: '14px',
+              borderRadius: '5px',
+              textAlign: 'center',
+              fontWeight: 'bold',
+              marginBottom: '1em'
+            }}>
+              {this.state.errorMessage}
+            </div>
+          )}
         </BaseViewHeading>
 
         <div className="canvas-container" style={{ marginBottom: '1.5em' }}>
@@ -333,7 +353,6 @@ class RecorderView extends React.Component {
               Select Replay:
             </label>
 
-            {/* Container for the select dropdown */}
             <div style={{ position: 'relative' }}>
               <select
                 id="replaySelector"
@@ -347,8 +366,8 @@ class RecorderView extends React.Component {
                   border: '1px solid #ccc',
                   cursor: 'pointer',
                   marginRight: '0.5em',
-                  height: '100px',
-                  width: '200px', // Added a width to make it consistent
+                  height: `${Math.min(this.state.savedReplays.length, 5) * 20 + 4}px`,
+                  width: '200px',
                 }}
               >
                 {this.state.savedReplays.map((filename) => (
@@ -358,6 +377,26 @@ class RecorderView extends React.Component {
                 ))}
               </select>
             </div>
+
+
+            <button
+                onClick={this.handleDownloadSelectedReplays}
+                disabled={!this.state.selectedReplay}
+                style={{
+                  padding: '0.5em 1em',
+                  backgroundColor: this.state.selectedReplay ? '#5bc0de' : '#ccc',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: this.state.selectedReplay ? 'pointer' : 'not-allowed',
+                  transition: 'background-color 0.3s ease',
+                  marginLeft: '0.5em',
+                }}
+              >
+                <DownloadSVG className="h-6 w-6" />
+            </button>
 
             <button
               onClick={() => this.handleDeleteReplay()}
@@ -375,7 +414,7 @@ class RecorderView extends React.Component {
                 marginLeft: '0.5em',
               }}
             >
-              Delete
+              <DeleteSVG className="h-6 w-6" />
             </button>
 
             <button
@@ -392,9 +431,12 @@ class RecorderView extends React.Component {
                 cursor: this.state.savedReplays.length > 0 ? 'pointer' : 'not-allowed',
                 transition: 'background-color 0.3s ease',
                 marginLeft: '0.5em',
+                display: 'inline-flex',
+                alignItems: 'center',
               }}
             >
-              Delete All
+              <DeleteSVG className="h-6 w-6"/>
+              <span style={{ marginLeft: '0.3em' }}>All</span>
             </button>
           </div>
 
