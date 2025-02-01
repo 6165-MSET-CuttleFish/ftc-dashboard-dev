@@ -61,8 +61,8 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
                 if (motorName == null) continue;
                 CustomVariable motorVar = (CustomVariable) motorsVar.getVariable(motorName);
                 if (motorVar != null) {
-                    ConfigVariable powerVar = motorVar.getVariable("Power");
-                    ConfigVariable targetPosVar = motorVar.getVariable("Target Position");
+                    ConfigVariable<?> powerVar = motorVar.getVariable("Power");
+                    ConfigVariable<?> targetPosVar = motorVar.getVariable("Target Position");
                     if (powerVar != null) {
                         double power = (double) powerVar.getValue();
                         motorEx.setPower(power);
@@ -87,7 +87,7 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
                 if (servoName == null) continue;
                 CustomVariable servoVar = (CustomVariable) servosVar.getVariable(servoName);
                 if (servoVar != null) {
-                    ConfigVariable positionVar = servoVar.getVariable("Position");
+                    ConfigVariable<?> positionVar = servoVar.getVariable("Position");
                     if (positionVar != null) {
                         double position = (double) positionVar.getValue();
                         servo.setPosition(position);
