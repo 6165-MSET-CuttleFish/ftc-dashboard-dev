@@ -1,23 +1,23 @@
 import {
   ReceiveTelemetryAction,
   UpdateTelemetryAction,
+  ClearTelemetryAction, // ✅ Add this line
   RECEIVE_TELEMETRY,
   UPDATE_TELEMETRY,
+  CLEAR_TELEMETRY,
   Telemetry,
 } from '@/store/types';
+
+type TelemetryAction = ReceiveTelemetryAction | UpdateTelemetryAction | ClearTelemetryAction; // ✅ Include CLEAR_TELEMETRY here
 
 const initialState = {
   data: [], // Store telemetry ops here
   isReplay: false, // Flag to indicate replay mode
 };
 
-const telemetryReducer = (
-  state = initialState,
-  action: ReceiveTelemetryAction | UpdateTelemetryAction
-) => {
+const telemetryReducer = (state = initialState, action: TelemetryAction) => { // ✅ Use the new type
   switch (action.type) {
     case RECEIVE_TELEMETRY:
-      // Reset state to receive new telemetry
       return {
         ...state,
         data: action.telemetry, // Set new telemetry data
@@ -25,10 +25,9 @@ const telemetryReducer = (
       };
 
     case UPDATE_TELEMETRY:
-      // When updating telemetry, add new ops to the existing telemetry data
       return {
         ...state,
-        isReplay: action.overlay.isReplay !== undefined ? action.overlay.isReplay : state.isReplay, // Preserve isReplay if not set
+        isReplay: action.overlay.isReplay !== undefined ? action.overlay.isReplay : state.isReplay,
         data: state.data.map((item) => ({
           ...item,
           fieldOverlay: {
@@ -36,6 +35,13 @@ const telemetryReducer = (
             ops: [...item.fieldOverlay.ops, ...action.overlay.ops],
           },
         })),
+      };
+
+    case CLEAR_TELEMETRY:
+      return {
+        ...state,
+        data: [], // ✅ Clear the telemetry data
+        isReplay: false,
       };
 
     default:
