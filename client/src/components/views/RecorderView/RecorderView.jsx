@@ -49,31 +49,71 @@ class RecorderView extends React.Component {
     const formattedDate = currentDate.toISOString().split('.')[0]; // Removing milliseconds
     const storageKey = `field_replay_${formattedDate}`;
 
-    localStorage.setItem(storageKey, JSON.stringify(this.telemetryRecording));
+    // Step 1: Get the current size of localStorage
+    let totalSize = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      totalSize += new Blob([localStorage.getItem(key)]).size;
+    }
+    console.log('Current total localStorage size:', totalSize);
+
+    // Step 2: Calculate the size of the data you're about to save
+    const dataToSave = JSON.stringify(this.telemetryRecording);
+    const newDataSize = new Blob([dataToSave]).size;
+    console.log('Size of data to save:', newDataSize);
+
+    // Step 3: Check if saving this new data will exceed the localStorage quota (5MB)
+    const maxStorageSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (totalSize + newDataSize > maxStorageSize) {
+      console.error('Cannot save data. LocalStorage quota exceeded.');
+      // Optionally, remove the oldest data or clear out old replays to free space
+      // this.handleDeleteOldestReplay(); // Implement this function if needed
+      return; // Prevent saving if exceeding quota
+    }
+
+
+    localStorage.setItem(storageKey, dataToSave);
     console.log(`Saved to localStorage with key: ${storageKey}`);
+
 
     this.loadSavedReplays(); // Refresh replay list
   };
 
-  handleLoadTelemetryByFilename = (event) => {
-    const filename = event.target.value;
-    if (!filename) return;
 
-    const savedTelemetry = localStorage.getItem(filename);
-    if (savedTelemetry) {
-      this.telemetryReplay = JSON.parse(savedTelemetry);
-      this.setState({ selectedReplay: filename });
-      console.log(`Loaded telemetry from ${filename}`);
-    }
+  handleLoadTelemetryByFilename = (event) => {
+    const selectedFiles = Array.from(event.target.selectedOptions, (option) => option.value);
+    if (selectedFiles.length === 0) return;
+
+    this.setState({
+      selectedReplay: selectedFiles[0],  // Update selectedReplay here
+    });
+
+    this.telemetryReplay = []; // Reset the array to hold new telemetry data
+
+    selectedFiles.forEach((filename) => {
+      const savedTelemetry = localStorage.getItem(filename);
+      if (savedTelemetry) {
+        const parsedTelemetry = JSON.parse(savedTelemetry);
+        this.telemetryReplay.push(parsedTelemetry); // Store each file's telemetry as a new array inside the 2D array
+      }
+    });
+    this.setState({ selectedReplays: selectedFiles });
+    console.log(`Loaded telemetry from ${selectedFiles.join(', ')}`);
   };
 
-  handleDeleteReplay = (filename) => {
-    localStorage.removeItem(filename);
-    console.log(`Deleted replay: ${filename}`);
+  handleDeleteReplay = () => {
+    const { selectedReplay } = this.state;
+
+    if (!selectedReplay) return; // No replay selected, do nothing
+
+    localStorage.removeItem(selectedReplay);
+    this.telemetryReplay = [];
+    this.currOps = [[]];
+    console.log(`Deleted replay: ${selectedReplay}`);
 
     this.setState((prevState) => ({
-      savedReplays: prevState.savedReplays.filter((file) => file !== filename),
-      selectedReplay: prevState.selectedReplay === filename ? '' : prevState.selectedReplay,
+      savedReplays: prevState.savedReplays.filter((file) => file !== selectedReplay),
+      selectedReplay: prevState.selectedReplay === selectedReplay ? '' : prevState.selectedReplay,
     }));
   };
 
@@ -83,6 +123,8 @@ class RecorderView extends React.Component {
     if (savedReplays.length === 0) return;
 
     savedReplays.forEach((filename) => localStorage.removeItem(filename));
+    this.telemetryReplay = [];
+    this.currOps = [[]];
     console.log("Deleted all saved replays.");
 
     this.setState({ savedReplays: [], selectedReplay: '' });
@@ -102,122 +144,155 @@ class RecorderView extends React.Component {
   startPlayback = () => {
     if (this.telemetryReplay.length === 0) return;
 
-    let lastIndex = 0;
+    let lastIndex = new Array(this.telemetryReplay.length).fill(0);
     let playbackComplete = false;
+    let ops = [[]];
 
     this.startReplayTime = Date.now();
-    const firstTimestamp = this.telemetryReplay[0].timestamp;
 
     console.log(`Playback started at: ${this.startReplayTime}`);
-    console.log(`First timestamp: ${firstTimestamp}`);
 
     this.playbackInterval = setInterval(() => {
+
       const elapsedTime = Date.now() - this.startReplayTime;
       const timeRangeEnd = elapsedTime + this.replayUpdateInterval / 2;
 
-      for (let i = lastIndex; i < this.telemetryReplay.length; i++) {
-        const entry = this.telemetryReplay[i];
+      // Update the operations for each replay
+      
+      for (let replayIndex = 0; replayIndex < this.telemetryReplay.length; replayIndex++) {
+        let isUpdated = false;
+        for (let i = lastIndex[replayIndex]; i < this.telemetryReplay[replayIndex].length; i++) {
+          const entry = this.telemetryReplay[replayIndex][i];
 
-        if (entry.timestamp <= timeRangeEnd) {
-          this.props.setReplayOverlay(entry.ops);
-          this.currOps = entry.ops;
-          lastIndex = i + 1;
-        } else {
-          break;
+          if (entry.timestamp <= timeRangeEnd) {
+            if (!isUpdated) {
+              ops[replayIndex] = []; // Clear previous operations
+              isUpdated = true;
+            }
+            ops[replayIndex].push(...entry.ops);
+            lastIndex[replayIndex] = i + 1;
+          } else {
+            break;
+          }
         }
       }
 
-      if (lastIndex == this.telemetryReplay.length) {
+
+      // Push the current operations to the overlay
+      this.currOps = ops.flat();
+
+
+      if (JSON.stringify(this.currOps).length > 0) {
+        this.props.setReplayOverlay(this.currOps);
+      }
+
+      if (lastIndex.every((index, idx) => index >= (this.telemetryReplay[idx]?.length || 0))) {
         playbackComplete = true;
       }
 
       if (playbackComplete) {
+        this.clearPlayback();
         console.log('Playback completed.');
-        this.isReplaying = false;
-        clearInterval(this.playbackInterval);
-        this.playbackInterval = null;
+
       }
     }, this.replayUpdateInterval);
   };
 
-  componentDidUpdate(prevProps) {
-
-
-
-      if (this.props.activeOpModeStatus === OpModeStatus.STOPPED && this.isRunning) {
-          this.isRunning = false;
-          console.log("Stop detected! Saving telemetry...");
-          this.handleSaveToLocalStorage();
-      }
-      if (this.props.telemetry === prevProps.telemetry) {
-          return; // No changes, so return early
-      }
-      const overlay = this.props.telemetry.reduce(
-                  (acc, { fieldOverlay }) => ({
-                      ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
-                  }),
-                  { ops: [] }
-                );
-            const prevOverlay = prevProps.telemetry.reduce(
-                        (acc, { fieldOverlay }) => ({
-                            ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
-                        }),
-                        { ops: [] }
-                      );
-      if (JSON.stringify(overlay.ops) !== JSON.stringify(prevOverlay.ops)) {
-          console.error(overlay);
-          console.error(prevOverlay);
-          if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
-            this.isRunning = true;
-            console.log("Start recording...");
-            this.startRecordingTime = Date.now();
-            this.telemetryRecording = [];
-
-            if (this.replayOnStart) {
-              this.handleStartPlayback();
-            }
-          }
-      }
-
-      if (this.isRunning) {
-          const overlay = this.props.telemetry.reduce(
-            (acc, { fieldOverlay }) => ({
-                ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
-            }),
-            { ops: [] }
-          );
-          if (overlay.ops.length > 0) {
-              const relativeTimestamp = Date.now() - this.startRecordingTime;
-              this.telemetryRecording.push({
-                  timestamp: relativeTimestamp,
-                  ops: overlay.ops,
-              });
-          }
-      }
-
-      // Handle replay overlay
-      if (this.isReplaying) {
-          const replayOps = this.props.telemetry.reduce(
-              (acc, { replayOverlay }) => ({
-                  ops: [...(replayOverlay?.ops || [])],
-              }),
-              { ops: [] }
-          );
-          if (replayOps.ops.length === 0 && JSON.stringify(this.currOps) !== JSON.stringify(replayOps.ops)) {
-              this.props.setReplayOverlay(this.currOps);
-              console.log('Setting currOps');
-          }
-      }
+  clearPlayback() {
+      this.isReplaying = false;
+      clearInterval(this.playbackInterval);
+      this.playbackInterval = null;
   }
 
-  // Handle changes for replay update interval
+  compareOverlays = (prevOverlay, currentOverlay) => {
+    return JSON.stringify(currentOverlay.ops) !== JSON.stringify(prevOverlay.ops);
+  };
+
+  componentDidUpdate(prevProps) {
+    if (this.props.activeOpModeStatus === OpModeStatus.STOPPED && this.isRunning) {
+      this.isRunning = false;
+      console.log("Stop detected! Saving telemetry...");
+      this.handleSaveToLocalStorage();
+    }
+
+    if (this.props.telemetry === prevProps.telemetry) {
+      return; // No changes, so return early
+    }
+
+    const overlay = this.props.telemetry.reduce(
+      (acc, { fieldOverlay }) => ({
+        ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+      }),
+      { ops: [] }
+    );
+
+    const prevOverlay = prevProps.telemetry.reduce(
+      (acc, { fieldOverlay }) => ({
+        ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+      }),
+      { ops: [] }
+    );
+
+    // Check if overlay has any undefined ops
+    if (overlay.ops.some(op => op === undefined)) {
+      console.error("Undefined operation found in current telemetry overlay!");
+      return; // Do not continue if there are undefined operations
+    }
+
+    if (this.compareOverlays(prevOverlay, overlay)) {
+
+      if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
+        this.isRunning = true;
+        console.log("Start recording...");
+        this.startRecordingTime = Date.now();
+        this.telemetryRecording = [];
+        this.currOps = [];
+
+        if (this.replayOnStart) {
+          this.handleStartPlayback();
+        }
+      }
+    }
+
+    if (this.isRunning) {
+      const overlay = this.props.telemetry.reduce(
+        (acc, { fieldOverlay }) => ({
+          ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+        }),
+        { ops: [] }
+      );
+
+      if (overlay.ops.length > 0) {
+        const relativeTimestamp = Date.now() - this.startRecordingTime;
+        this.telemetryRecording.push({
+          timestamp: relativeTimestamp,
+          ops: overlay.ops,
+        });
+      }
+    }
+
+    // Handle replay overlay
+    if (this.isReplaying) {
+      const replayOps = this.props.telemetry.reduce(
+        (acc, { replayOverlay }) => ({
+          ops: [...(replayOverlay?.ops || [])],
+        }),
+        { ops: [] }
+      );
+      const currOpsStr = JSON.stringify(this.currOps);
+      if (replayOps.ops.length === 0 && currOpsStr !== JSON.stringify(replayOps.ops) && currOpsStr.length > 0) {
+        this.props.setReplayOverlay(this.currOps);
+        console.warn("setting replay overlay");
+      }
+    }
+  }
+
   handleReplayUpdateIntervalChange = (event) => {
     const value = parseInt(event.target.value, 10);
     this.replayUpdateInterval = value;
     this.setState({ replayUpdateInterval: value });
   };
 
-  // Handle checkbox for replay on start
   handleReplayOnStartChange = (event) => {
     const checked = event.target.checked;
     this.replayOnStart = checked;
@@ -262,25 +337,26 @@ class RecorderView extends React.Component {
               Select Replay:
             </label>
             <select
-              id="replaySelector"
-              value={this.state.selectedReplay}
-              onChange={this.handleLoadTelemetryByFilename}
-              style={{
-                padding: '0.5em',
-                fontSize: '14px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                cursor: 'pointer',
-                marginRight: '0.5em',
-              }}
-            >
-              <option value="">-- Choose a Replay --</option>
-              {this.state.savedReplays.map((filename) => (
-                <option key={filename} value={filename}>
-                  {filename.replace('field_replay_', '')}
-                </option>
-              ))}
-            </select>
+                  id="replaySelector"
+                  multiple
+                  value={this.state.selectedReplays}
+                  onChange={this.handleLoadTelemetryByFilename}
+                  style={{
+                    padding: '0.5em',
+                    fontSize: '14px',
+                    borderRadius: '4px',
+                    border: '1px solid #ccc',
+                    cursor: 'pointer',
+                    marginRight: '0.5em',
+                    height: '100px',
+                  }}
+                >
+                  {this.state.savedReplays.map((filename) => (
+                    <option key={filename} value={filename}>
+                      {filename.replace('field_replay_', '')}
+                    </option>
+                  ))}
+                </select>
 
             <button
               onClick={() => this.handleDeleteReplay(this.state.selectedReplay)}
