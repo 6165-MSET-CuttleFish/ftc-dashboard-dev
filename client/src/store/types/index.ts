@@ -19,7 +19,7 @@ export type {
   GamepadState,
   GamepadConnectionState,
   GamepadConnectedAction,
-  GamepadDisonnectedAction,
+  GamepadDisconnectedAction, // Fixed typo
   ReceiveGamepadStateAction,
 } from './gamepad';
 
@@ -74,10 +74,10 @@ export type {
   GamepadSupportedStatus,
 } from './status';
 
-export { RECEIVE_TELEMETRY, UPDATE_TELEMETRY, } from './telemetry';
+export { RECEIVE_TELEMETRY, SET_REPLAY_OVERLAY } from './telemetry';
 export type {
   Telemetry,
   TelemetryItem,
   ReceiveTelemetryAction,
-  UpdateTelemetryAction,
+  SetReplayOverlayAction,
 } from './telemetry';
