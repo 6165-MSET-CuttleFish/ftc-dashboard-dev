@@ -576,7 +576,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         CustomVariable motors = new CustomVariable();
 
         activeOpMode.with(o -> {
-            if (o.opMode != null) {
+            System.out.println("log of status opmode" + o.status.name());
+            if (o.opMode != null && o.status == RobotStatus.OpModeStatus.RUNNING) {
                 for (DcMotorSimple motor : o.opMode.hardwareMap.getAll(DcMotorSimple.class)) {
                     CustomVariable motorVar = new CustomVariable();
                     DcMotorEx motorEx = (DcMotorEx) motor;
@@ -602,7 +603,10 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
                     motors.putVariable(o.opMode.hardwareMap.getNamesOf(motorEx).toArray()[0].toString(), motorVar);
                 }
+            } else {
+                System.out.println("Hardware methods require an active running OpMode");
             }
+            System.out.println(o.status.name());
         });
 
         motors.putVariable("test motor", createVariableFromDouble(23424.433));
@@ -612,7 +616,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         CustomVariable servos = new CustomVariable();
 
         activeOpMode.with(o -> {
-            if (o.opMode != null) {
+            System.out.println("log of status opmode" + o.status.name());
+            if (o.opMode != null && o.status == RobotStatus.OpModeStatus.RUNNING) {
                 for (Servo servo : o.opMode.hardwareMap.getAll(Servo.class)) {
                     CustomVariable servoVar = new CustomVariable();
 
@@ -635,6 +640,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
                     servos.putVariable(o.opMode.hardwareMap.getNamesOf(servo).toArray()[0].toString(), servoVar);
                 }
+            } else {
+                System.out.println("Hardware methods require an active running OpMode");
             }
         });
 
@@ -661,11 +668,10 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                             }
                             if (positionVar != null) {
                                 int position = (int) Math.round((double) positionVar.getValue());
-//                                try {
-//                                    motorEx.setTargetPosition(position);
-//                                    motorEx.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-//                                } catch (Exception ignored) {}
-
+                                try {
+                                    motorEx.setTargetPosition(position);
+                                    motorEx.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                                } catch (Exception e) {System.out.println("try catch print: " + e);}
                             }
                         }
                     }
