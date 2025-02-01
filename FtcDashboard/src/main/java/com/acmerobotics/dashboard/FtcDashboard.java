@@ -20,6 +20,7 @@ import com.acmerobotics.dashboard.config.ValueProvider;
 import com.acmerobotics.dashboard.config.reflection.ReflectionConfig;
 import com.acmerobotics.dashboard.config.variable.ConfigVariable;
 import com.acmerobotics.dashboard.config.variable.CustomVariable;
+import com.acmerobotics.dashboard.hardware.HardwareOpMode;
 import com.acmerobotics.dashboard.message.Message;
 import com.acmerobotics.dashboard.message.redux.InitOpMode;
 import com.acmerobotics.dashboard.message.redux.ReceiveGamepadState;
@@ -47,6 +48,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.configuration.ExpansionHubMotorControllerParamsState;
+import com.qualcomm.robotcore.robot.RobotState;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.util.ThreadPool;
 import com.qualcomm.robotcore.util.WebHandlerManager;
@@ -101,6 +103,9 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     private static final String PREFS_AUTO_ENABLE_KEY = "autoEnable";
 
     private static FtcDashboard instance;
+
+    private HardwareOpMode hardwareOpMode;
+
     @OpModeRegistrar
     public static void registerOpMode(OpModeManager manager) {
         if (instance != null && !suppressOpMode) {
@@ -597,7 +602,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     }
 
                     motorVar.putVariable("Power", createVariableFromDouble(motorEx.getPower()));
-                    motorVar.putVariable("Position", createVariableFromDouble(motorEx.getCurrentPosition()));
+                    motorVar.putVariable("Current Position", createVariableFromDouble(motorEx.getCurrentPosition()));
+                    motorVar.putVariable("Target Position", createVariableFromDouble(motorEx.getTargetPosition()));
                     motorVar.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
                     motorVar.putVariable(s + " Port", createVariableFromDouble(motorEx.getPortNumber()));
 
@@ -697,8 +703,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             }
         });
     }
-
-
     private class DashWebSocket extends NanoWSD.WebSocket implements SendFun {
         final SocketHandler sh = core.newSocket(this);
 
@@ -792,6 +796,10 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     }
 
     private FtcDashboard() {
+
+        hardwareOpMode = new HardwareOpMode(core);
+        RegisteredOpModes.getInstance().register("HardwareOpMode", hardwareOpMode);
+
         core.withConfigRoot(new CustomVariableConsumer() {
             @Override
             public void accept(CustomVariable configRoot) {
@@ -1435,28 +1443,20 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
     @Override
     public void onOpModePreInit(OpMode opMode) {
+
+
         activeOpMode.with(o -> {
-            o.opMode = opMode;
+            o.opMode = hardwareOpMode;
             o.status = RobotStatus.OpModeStatus.INIT;
             new Thread(() -> {
-                while (o.status == RobotStatus.OpModeStatus.RUNNING && !Thread.currentThread().isInterrupted()) {
-                    core.withHardwareRoot(new CustomVariableConsumer() {
-                        @Override
-                        public void accept(CustomVariable hardwareRoot) {
-                            setHardware(hardwareRoot);
-                            addHardware(hardwareRoot);
-                        }
-                    });
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
+                while (!Thread.currentThread().isInterrupted()) {
+                     o.opMode.init_loop();
                 }
+
             }).start();
         });
 
-        if (!(opMode instanceof OpModeManagerImpl.DefaultOpMode)) {
+        if (!(opMode instanceof HardwareOpMode)) {
             clearTelemetry();
         }
     }
@@ -1464,35 +1464,24 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     @Override
     public void onOpModePreStart(OpMode opMode) {
         activeOpMode.with(o -> {
-            o.opMode = opMode;
+            o.opMode = hardwareOpMode;
             o.status = RobotStatus.OpModeStatus.RUNNING;
-            if (o.opMode != null) {
-                new Thread(() -> {
-                                while (o.status == RobotStatus.OpModeStatus.RUNNING && !Thread.currentThread().isInterrupted()) {
-                                    core.withHardwareRoot(new CustomVariableConsumer() {
-                                        @Override
-                                        public void accept(CustomVariable hardwareRoot) {
-                                            setHardware(hardwareRoot);
-                                            addHardware(hardwareRoot);
-                                        }
-                                    });
-                                    try {
-                                        Thread.sleep(100);
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                    }
-                                }
-                            }).start();
-            }
+
+            new Thread(() -> {
+                while (!Thread.currentThread().isInterrupted()) {
+                    o.opMode.loop();
+                }
+            }).start();
         });
     }
 
     @Override
     public void onOpModePostStop(OpMode opMode) {
         activeOpMode.with(o -> {
-            o.opMode = opMode;
+            o.opMode = hardwareOpMode;
             o.status = RobotStatus.OpModeStatus.STOPPED;
         });
+
 
         // this callback is sometimes called from the UI thread
         (new Thread() {
@@ -1517,27 +1506,27 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             }
         }).start();
 
-        (new Thread() {
-            @Override
-            public void run() {
-                withHardwareRoot(new CustomVariableConsumer() {
-                    @Override
-                    public void accept(CustomVariable hardwareRoot) {
-                        for (String[] var : varsToRemove) {
-                            String category = var[0];
-                            String name = var[1];
-                            CustomVariable catVar =
-                                    (CustomVariable) hardwareRoot.getVariable(category);
-                            catVar.removeVariable(name);
-                            if (catVar.size() == 0) {
-                                hardwareRoot.removeVariable(category);
-                            }
-                        }
-                        varsToRemove.clear();
-                    }
-                });
-            }
-        }).start();
+//        (new Thread() {
+//            @Override
+//            public void run() {
+//                withHardwareRoot(new CustomVariableConsumer() {
+//                    @Override
+//                    public void accept(CustomVariable hardwareRoot) {
+//                        for (String[] var : varsToRemove) {
+//                            String category = var[0];
+//                            String name = var[1];
+//                            CustomVariable catVar =
+//                                    (CustomVariable) hardwareRoot.getVariable(category);
+//                            catVar.removeVariable(name);
+//                            if (catVar.size() == 0) {
+//                                hardwareRoot.removeVariable(category);
+//                            }
+//                        }
+//                        varsToRemove.clear();
+//                    }
+//                });
+//            }
+//        }).start();
 
         stopCameraStream();
     }
@@ -1545,4 +1534,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     public void toggleDiagnostics(boolean enabled) {
         enableDiagnostics = enabled;
     }
+
+
+
+
 }
