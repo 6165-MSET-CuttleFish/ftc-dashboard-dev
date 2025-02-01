@@ -22,7 +22,7 @@ public class OrbitOverload extends TestOpMode {
 
     public static double SIDE_LENGTH = 5;
 
-    public static int ORBITS = 1000;
+    public static int ORBITS = 200;
     public OrbitOverload() {
         super("Orbit Overload");
     }
