@@ -140,7 +140,7 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
                 return null;
             }
             java.util.Set<String> names = opMode.hardwareMap.getNamesOf((HardwareDevice) device);
-            if (names != null && !names.isEmpty()) {
+            if (!names.isEmpty()) {
                 return names.iterator().next();
             }
         } catch (Exception e) {
