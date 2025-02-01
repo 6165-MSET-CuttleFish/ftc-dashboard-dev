@@ -20,13 +20,16 @@ class RecorderView extends React.Component {
 
     this.telemetryRecording = [];
     this.telemetryReplay = [];
+    this.currOps = [];
 
     this.replayUpdateInterval = 100;
-    this.currOps = [];
+    this.replayOnStart = false;
 
     this.state = {
       savedReplays: [],
       selectedReplay: '',
+      replayUpdateInterval: this.replayUpdateInterval,
+      replayOnStart: this.replayOnStart,
     };
   }
 
@@ -42,8 +45,9 @@ class RecorderView extends React.Component {
   };
 
   handleSaveToLocalStorage = () => {
-    const currentDate = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
-    const storageKey = `field_replay_${currentDate}`;
+    const currentDate = new Date();
+    const formattedDate = currentDate.toISOString().split('.')[0]; // Removing milliseconds
+    const storageKey = `field_replay_${formattedDate}`;
 
     localStorage.setItem(storageKey, JSON.stringify(this.telemetryRecording));
     console.log(`Saved to localStorage with key: ${storageKey}`);
@@ -83,7 +87,6 @@ class RecorderView extends React.Component {
 
     this.setState({ savedReplays: [], selectedReplay: '' });
   };
-
 
   handleStartPlayback = () => {
     if (this.playbackInterval) {
@@ -138,53 +141,74 @@ class RecorderView extends React.Component {
   };
 
   componentDidUpdate(prevProps) {
-    if (this.props.telemetry == prevProps.telemetry) return;
+      if (this.props.activeOpModeStatus !== prevProps.activeOpModeStatus){
+          if (this.props.activeOpModeStatus === OpModeStatus.RUNNING && !this.isRunning) {
+              this.isRunning = true;
+              console.log("Start recording...");
+              this.startRecordingTime = Date.now();
+              this.telemetryRecording = [];
 
-    if (this.props.activeOpModeStatus == OpModeStatus.INIT && !this.isRunning) {
-      this.isRunning = true;
-      console.error("start");
+              if (this.replayOnStart) {
+                  this.handleStartPlayback();
+              }
+          }
 
-      this.startRecordingTime = Date.now();
-      this.telemetryRecording = [];
-    }
-console.error("Current Status:", this.props.activeOpModeStatus);
-console.error("Is Running:", this.isRunning);
-
-    if (this.props.activeOpModeStatus == OpModeStatus.STOPPED && this.isRunning == true) {
-      this.isRunning = false;
-      console.error("stop");
-      this.handleSaveToLocalStorage();
-    }
-
-    const overlay = this.props.telemetry.reduce(
-      (acc, { fieldOverlay }) => ({
-        ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
-      }),
-      { ops: [] }
-    );
-
-    if (overlay.ops.length > 0) {
-      const relativeTimestamp = Date.now() - this.startRecordingTime;
-
-      this.telemetryRecording.push({
-        timestamp: relativeTimestamp,
-        ops: overlay.ops,
-      });
-    }
-
-    if (this.isReplaying) {
-      const replayOps = this.props.telemetry.reduce(
-        (acc, { replayOverlay }) => ({
-          ops: [...(replayOverlay?.ops || [])],
-        }),
-        { ops: [] }
-      );
-      if (replayOps.ops.length === 0 && JSON.stringify(this.currOps) !== JSON.stringify(replayOps.ops)) {
-        this.props.setReplayOverlay(this.currOps);
-        console.error('Setting currOps');
+          if (this.props.activeOpModeStatus === OpModeStatus.STOPPED && this.isRunning) {
+              this.isRunning = false;
+              console.log("Stop detected! Saving telemetry...");
+              this.handleSaveToLocalStorage();
+          }
       }
-    }
+      if (this.props.telemetry === prevProps.telemetry) {
+          return; // No changes, so return early
+      }
+
+      if (this.isRunning) {
+          // Process telemetry data
+          const overlay = this.props.telemetry.reduce(
+              (acc, { fieldOverlay }) => ({
+                  ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+              }),
+              { ops: [] }
+          );
+
+          if (overlay.ops.length > 0) {
+              const relativeTimestamp = Date.now() - this.startRecordingTime;
+              this.telemetryRecording.push({
+                  timestamp: relativeTimestamp,
+                  ops: overlay.ops,
+              });
+          }
+      }
+
+      // Handle replay overlay
+      if (this.isReplaying) {
+          const replayOps = this.props.telemetry.reduce(
+              (acc, { replayOverlay }) => ({
+                  ops: [...(replayOverlay?.ops || [])],
+              }),
+              { ops: [] }
+          );
+          if (replayOps.ops.length === 0 && JSON.stringify(this.currOps) !== JSON.stringify(replayOps.ops)) {
+              this.props.setReplayOverlay(this.currOps);
+              console.log('Setting currOps');
+          }
+      }
   }
+
+  // Handle changes for replay update interval
+  handleReplayUpdateIntervalChange = (event) => {
+    const value = parseInt(event.target.value, 10);
+    this.replayUpdateInterval = value;
+    this.setState({ replayUpdateInterval: value });
+  };
+
+  // Handle checkbox for replay on start
+  handleReplayOnStartChange = (event) => {
+    const checked = event.target.checked;
+    this.replayOnStart = checked;
+    this.setState({ replayOnStart: checked });
+  };
 
   render() {
     return (
@@ -202,10 +226,10 @@ console.error("Is Running:", this.isRunning);
             onClick={this.handleStartPlayback}
             className="btn btn-play"
             style={{
-              padding: '0.8em 1.5em',
+              padding: '0.5em 1em',
               backgroundColor: '#4CAF50',
               color: '#fff',
-              fontSize: '16px',
+              fontSize: '14px',
               fontWeight: 'bold',
               border: 'none',
               borderRadius: '6px',
@@ -215,72 +239,104 @@ console.error("Is Running:", this.isRunning);
             onMouseOver={(e) => (e.target.style.backgroundColor = '#45a049')}
             onMouseOut={(e) => (e.target.style.backgroundColor = '#4CAF50')}
           >
-            <i className="fas fa-play-circle" style={{ marginRight: '10px' }}></i>
+            <i className="fas fa-play-circle" style={{ marginRight: '0px' }}></i>
             Start Playback
           </button>
-        <div style={{ marginTop: '1em' }}>
-          <label htmlFor="replaySelector" style={{ fontWeight: 'bold', marginRight: '0.5em' }}>
-            Select Replay:
-          </label>
-          <select
-            id="replaySelector"
-            value={this.state.selectedReplay}
-            onChange={this.handleLoadTelemetryByFilename}
-            style={{
-              padding: '0.5em',
-              fontSize: '14px',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-              cursor: 'pointer',
-              marginRight: '0.5em',
-            }}
-          >
-            <option value="">-- Choose a Replay --</option>
-            {this.state.savedReplays.map((filename) => (
-              <option key={filename} value={filename}>
-                {filename.replace('field_replay_', '')}
-              </option>
-            ))}
-          </select>
 
-          <button
-            onClick={() => this.handleDeleteReplay(this.state.selectedReplay)}
-            disabled={!this.state.selectedReplay}
-            style={{
-              padding: '0.5em 1em',
-              backgroundColor: this.state.selectedReplay ? '#d9534f' : '#ccc',
-              color: '#fff',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: this.state.selectedReplay ? 'pointer' : 'not-allowed',
-              transition: 'background-color 0.3s ease',
-              marginLeft: '0.5em',
-            }}
-          >
-            Delete
-          </button>
+          <div style={{ marginTop: '1em' }}>
+            <label htmlFor="replaySelector" style={{ fontWeight: 'bold', marginRight: '0.5em' }}>
+              Select Replay:
+            </label>
+            <select
+              id="replaySelector"
+              value={this.state.selectedReplay}
+              onChange={this.handleLoadTelemetryByFilename}
+              style={{
+                padding: '0.5em',
+                fontSize: '14px',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                cursor: 'pointer',
+                marginRight: '0.5em',
+              }}
+            >
+              <option value="">-- Choose a Replay --</option>
+              {this.state.savedReplays.map((filename) => (
+                <option key={filename} value={filename}>
+                  {filename.replace('field_replay_', '')}
+                </option>
+              ))}
+            </select>
 
-          <button
-            onClick={this.handleDeleteAllReplays}
-            disabled={this.state.savedReplays.length === 0}
-            style={{
-              padding: '0.5em 1em',
-              backgroundColor: this.state.savedReplays.length > 0 ? '#d9534f' : '#ccc',
-              color: '#fff',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: this.state.savedReplays.length > 0 ? 'pointer' : 'not-allowed',
-              transition: 'background-color 0.3s ease',
-              marginLeft: '0.5em',
-            }}
-          >
-            Clear All Replays
-          </button>
-        </div>
+            <button
+              onClick={() => this.handleDeleteReplay(this.state.selectedReplay)}
+              disabled={!this.state.selectedReplay}
+              style={{
+                padding: '0.5em 1em',
+                backgroundColor: this.state.selectedReplay ? '#d9534f' : '#ccc',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: this.state.selectedReplay ? 'pointer' : 'not-allowed',
+                transition: 'background-color 0.3s ease',
+                marginLeft: '0.5em',
+              }}
+            >
+              Delete
+            </button>
+
+            <button
+              onClick={this.handleDeleteAllReplays}
+              disabled={this.state.savedReplays.length === 0}
+              style={{
+                padding: '0.5em 1em',
+                backgroundColor: this.state.savedReplays.length > 0 ? '#d9534f' : '#ccc',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: this.state.savedReplays.length > 0 ? 'pointer' : 'not-allowed',
+                transition: 'background-color 0.3s ease',
+                marginLeft: '0.5em',
+              }}
+            >
+              Delete All Replays
+            </button>
+          </div>
+
+          <div style={{ marginTop: '1.5em' }}>
+            <label htmlFor="replayUpdateInterval" style={{ marginRight: '0.5em' }}>
+              Replay Update Interval (ms):
+            </label>
+            <input
+              type="number"
+              id="replayUpdateInterval"
+              value={this.state.replayUpdateInterval}
+              onChange={this.handleReplayUpdateIntervalChange}
+              style={{
+                padding: '0.5em',
+                fontSize: '14px',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                marginRight: '0.5em',
+              }}
+            />
+            <label htmlFor="replayOnStart" style={{ marginRight: '0.5em' }}>
+              Start Replay on Load:
+            </label>
+            <input
+              type="checkbox"
+              id="replayOnStart"
+              checked={this.state.replayOnStart}
+              onChange={this.handleReplayOnStartChange}
+              style={{
+                marginRight: '0.5em',
+              }}
+            />
+          </div>
 
         </div>
       </BaseView>
