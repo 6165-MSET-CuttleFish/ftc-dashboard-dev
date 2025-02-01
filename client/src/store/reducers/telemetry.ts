@@ -20,7 +20,6 @@ const initialState: Telemetry = [
     replayOverlay: {
       ops: [],
     },
-    isReplay: false,
   },
 ];
 

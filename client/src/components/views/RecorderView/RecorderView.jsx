@@ -14,9 +14,58 @@ class RecorderView extends React.Component {
     this.canvasRef = React.createRef();
     this.telemetryHistory = [];
     this.playbackInterval = null;
-    this.startTime = null;
+    this.startReplayTime = null;
+    this.startRecordingTime = null;
     this.isRunning = false;
+    this.isReplaying = false;
+
+
+    this.replayUpdateInterval = 100;
+
+    this.currOps = [];
   }
+
+  handleSaveToLocalStorage = () => {
+    const currentDate = new Date().toISOString().split("T")[0]; // Format: YYYY-MM-DD
+    const storageKey = `telemetryHistory_${currentDate}`;
+
+    localStorage.setItem(storageKey, JSON.stringify(this.telemetryHistory));
+    console.log(`Saved to localStorage with key: ${storageKey}`);
+  };
+
+  handleLoadFromLocalStorage = () => {
+    const keys = Object.keys(localStorage);
+    const telemetryKeys = keys.filter((key) => key.startsWith("telemetryHistory_"));
+
+    if (telemetryKeys.length === 0) {
+      console.log("No telemetry history found.");
+      return;
+    }
+
+    // Get the latest saved telemetry key
+    const latestKey = telemetryKeys.sort().reverse()[0]; // Sort descending, pick the latest
+    const savedTelemetry = localStorage.getItem(latestKey);
+
+    if (savedTelemetry) {
+      this.telemetryHistory = JSON.parse(savedTelemetry);
+      console.log(`Loaded telemetry from ${latestKey}`);
+    }
+  };
+
+  handleListSavedTelemetry = () => {
+    const keys = Object.keys(localStorage);
+    const telemetryKeys = keys.filter((key) => key.startsWith("telemetryHistory_"));
+
+    return telemetryKeys;
+  };
+
+  handleLoadTelemetryByDate = (filename) => {
+    const storageKey = filename;
+    const savedTelemetry = localStorage.getItem(storageKey);
+  
+      this.telemetryHistory = JSON.parse(savedTelemetry);
+
+  };
 
   handleStartPlayback = () => {
     // Clear any existing playback interval
@@ -27,6 +76,7 @@ class RecorderView extends React.Component {
     }
 
     // Start the new playback
+    this.isReplaying = true;
     this.startPlayback();
   };
 
@@ -36,41 +86,27 @@ class RecorderView extends React.Component {
     let lastIndex = 0;
     let playbackComplete = false;
 
-    this.startTime = Date.now();
+    this.startReplayTime = Date.now();
     const firstTimestamp = this.telemetryHistory[0].timestamp;
 
-    console.log(`Playback started at: ${this.startTime}`);
+    console.log(`Playback started at: ${this.startReplayTime}`);
     console.log(`First timestamp: ${firstTimestamp}`);
 
     this.playbackInterval = setInterval(() => {
-      const elapsedTime = Date.now() - this.startTime;
-      const deltaTime = 25; // Time interval between updates
-      const timeRangeEnd = elapsedTime + deltaTime / 2;
+      const elapsedTime = Date.now() - this.startReplayTime;
+      const timeRangeEnd = elapsedTime + this.replayUpdateInterval / 2;
 
-      console.log(`Elapsed time: ${elapsedTime}`);
+//       console.log(`Elapsed time: ${elapsedTime}`);
 
       for (let i = lastIndex; i < this.telemetryHistory.length; i++) {
         const entry = this.telemetryHistory[i];
 
         if (entry.timestamp <= timeRangeEnd) {
-          // Reset telemetry data if op mode is stopped
-//           if (this.props.activeOpModeStatus === OpModeStatus.STOPPED) {
-//             this.props.receiveTelemetry([
-//               {
-//                 data: { ops: [] },
-//                 field: { ops: [] },
-//                 isReplay: true,
-//                 fieldOverlay: { ops: [] },
-//                 replayOverlay: { ops: [] },
-//                 log: [],
-//                 timestamp: entry.timestamp,
-//               },
-//             ]);
-//           }
-//
+
           // Set replay overlay
 
           this.props.setReplayOverlay(entry.ops);
+          this.currOps = entry.ops;
 
           lastIndex = i + 1;
         } else {
@@ -84,18 +120,19 @@ class RecorderView extends React.Component {
 
       if (playbackComplete) {
         console.log("Playback completed.");
+        this.isReplaying = false;
         clearInterval(this.playbackInterval);
         this.playbackInterval = null;
       }
-    }, 25);
+    }, this.replayUpdateInterval);
   };
 
   componentDidUpdate(prevProps) {
-    if (this.props.telemetry.isReplay || this.props.telemetry === prevProps.telemetry) return;
+    if (this.props.telemetry === prevProps.telemetry) return;
 
     if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
       this.isRunning = true;
-      this.startTime = Date.now();
+      this.startRecordingTime = Date.now();
       this.telemetryHistory = [];
     }
 
@@ -105,24 +142,40 @@ class RecorderView extends React.Component {
 
     // Aggregate ops from both field and fieldOverlay (ensure both are arrays)
     const overlay = this.props.telemetry.reduce(
-      (acc, { field, fieldOverlay }) => ({
+      (acc, { fieldOverlay }) => ({
         ops: [
           ...acc.ops,
-          ...(field?.ops || []),            // Ensure field.ops is always an array
-          ...(fieldOverlay?.ops || []),      // Ensure fieldOverlay.ops is always an array
+          ...(fieldOverlay?.ops || []),
         ],
       }),
       { ops: [] }
     );
 
     // Only record telemetry if it's not in replay mode
-    if (!this.props.telemetry.isReplay) {
-      const relativeTimestamp = Date.now() - this.startTime;
+    if (overlay.ops.length > 0) {
+      const relativeTimestamp = Date.now() - this.startRecordingTime;
 
       this.telemetryHistory.push({
         timestamp: relativeTimestamp,
         ops: overlay.ops,
       });
+    }
+
+
+    if (this.isReplaying) {
+        const replayOps = this.props.telemetry.reduce(
+              (acc, { replayOverlay }) => ({
+                ops: [
+                  ...(replayOverlay?.ops || []),
+                ],
+              }),
+              { ops: [] }
+            );
+        if (replayOps.ops.length === 0 && JSON.stringify(this.currOps) !== JSON.stringify(replayOps.ops)) {
+          this.props.setReplayOverlay(this.currOps);
+          console.error("setting currOps");
+        }
+
     }
 
   }
