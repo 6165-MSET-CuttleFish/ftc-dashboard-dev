@@ -1,26 +1,24 @@
 import {
   ReceiveTelemetryAction,
   UpdateTelemetryAction,
-  ClearTelemetryAction, // ✅ Add this line
+  ClearTelemetryAction,
   RECEIVE_TELEMETRY,
   UPDATE_TELEMETRY,
-  CLEAR_TELEMETRY,
   Telemetry,
 } from '@/store/types';
 
-type TelemetryAction = ReceiveTelemetryAction | UpdateTelemetryAction | ClearTelemetryAction; // ✅ Include CLEAR_TELEMETRY here
+type TelemetryAction = ReceiveTelemetryAction | UpdateTelemetryAction;
 
 const initialState = {
   data: [], // Store telemetry ops here
   isReplay: false, // Flag to indicate replay mode
 };
-
-const telemetryReducer = (state = initialState, action: TelemetryAction) => { // ✅ Use the new type
+const telemetryReducer = (state = initialState, action: TelemetryAction) => {
   switch (action.type) {
     case RECEIVE_TELEMETRY:
       return {
         ...state,
-        data: action.telemetry, // Set new telemetry data
+        data: [...state.data, ...action.telemetry], // Append new telemetry data instead of replacing
         isReplay: false, // Reset replay mode
       };
 
@@ -28,20 +26,17 @@ const telemetryReducer = (state = initialState, action: TelemetryAction) => { //
       return {
         ...state,
         isReplay: action.overlay.isReplay !== undefined ? action.overlay.isReplay : state.isReplay,
-        data: state.data.map((item) => ({
-          ...item,
-          fieldOverlay: {
-            ...item.fieldOverlay,
-            ops: [...item.fieldOverlay.ops, ...action.overlay.ops],
-          },
-        })),
-      };
-
-    case CLEAR_TELEMETRY:
-      return {
-        ...state,
-        data: [], // ✅ Clear the telemetry data
-        isReplay: false,
+        data: state.data.map((item, index) => {
+          const newOps = action.overlay.ops || []; // Ensure new ops exist
+          return {
+            ...item,
+            fieldOverlay: {
+              ...item.fieldOverlay,
+              ops: item.fieldOverlay.ops ? [...item.fieldOverlay.ops, ...newOps] : [...newOps],
+              // Ensures ops are added, not overwritten
+            },
+          };
+        }),
       };
 
     default:

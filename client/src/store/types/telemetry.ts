@@ -1,6 +1,5 @@
 export const RECEIVE_TELEMETRY = 'RECEIVE_TELEMETRY';
 export const UPDATE_TELEMETRY = 'UPDATE_TELEMETRY';
-export const CLEAR_TELEMETRY = 'CLEAR_TELEMETRY';
 
 export type Telemetry = TelemetryItem[];
 
@@ -11,10 +10,6 @@ export type Overlay = {
 export type UpdateTelemetryAction = {
   type: typeof UPDATE_TELEMETRY;
   overlay: Overlay;
-};
-
-export type ClearTelemetryAction = {
-  type: typeof CLEAR_TELEMETRY;
 };
 
 export type TelemetryItem = {
