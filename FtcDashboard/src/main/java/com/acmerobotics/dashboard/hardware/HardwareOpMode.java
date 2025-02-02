@@ -4,6 +4,7 @@ import static com.acmerobotics.dashboard.config.reflection.ReflectionConfig.crea
 
 import com.acmerobotics.dashboard.CustomVariableConsumer;
 import com.acmerobotics.dashboard.DashboardCore;
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.variable.ConfigVariable;
 import com.acmerobotics.dashboard.config.variable.CustomVariable;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -19,8 +20,8 @@ public class HardwareOpMode extends OpMode {
     DashboardCore core;
     OpMode opMode;
 
-    public HardwareOpMode(DashboardCore core) {
-        this.core = core;
+    public HardwareOpMode() {
+        this.core = FtcDashboard.getInstance().core;
         this.opMode = this;
         System.out.println("HardwareOpMode constructed");
     }
@@ -28,6 +29,14 @@ public class HardwareOpMode extends OpMode {
     @Override
     public void init() {
         System.out.println("HardwareOpMode init run");
+        core.withHardwareRoot(new CustomVariableConsumer() {
+            @Override
+            public void accept(CustomVariable hardwareRoot) {
+                if (opMode.hardwareMap != null) {
+                    addHardware(hardwareRoot);
+                }
+            }
+        });
     }
 
     @Override
@@ -38,7 +47,6 @@ public class HardwareOpMode extends OpMode {
             public void accept(CustomVariable hardwareRoot) {
                 if (opMode.hardwareMap != null) {
                     setHardware(hardwareRoot);
-                    addHardware(hardwareRoot);
                 }
             }
         });
@@ -52,7 +60,6 @@ public class HardwareOpMode extends OpMode {
             public void accept(CustomVariable hardwareRoot) {
                 if (opMode.hardwareMap != null) {
                     setHardware(hardwareRoot);
-                    addHardware(hardwareRoot);
                 }
             }
         });

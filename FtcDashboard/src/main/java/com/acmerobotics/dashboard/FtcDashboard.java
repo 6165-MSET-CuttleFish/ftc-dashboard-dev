@@ -1,14 +1,11 @@
 package com.acmerobotics.dashboard;
 
-import static com.acmerobotics.dashboard.config.reflection.ReflectionConfig.createVariableFromDouble;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
-import android.graphics.Path;
 import android.graphics.Typeface;
 import android.util.Base64;
 import android.util.Log;
@@ -19,7 +16,6 @@ import android.widget.TextView;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.config.ValueProvider;
 import com.acmerobotics.dashboard.config.reflection.ReflectionConfig;
-import com.acmerobotics.dashboard.config.variable.ConfigVariable;
 import com.acmerobotics.dashboard.config.variable.CustomVariable;
 import com.acmerobotics.dashboard.hardware.HardwareOpMode;
 import com.acmerobotics.dashboard.message.Message;
@@ -29,27 +25,15 @@ import com.acmerobotics.dashboard.message.redux.ReceiveImage;
 import com.acmerobotics.dashboard.message.redux.ReceiveOpModeList;
 import com.acmerobotics.dashboard.message.redux.ReceiveRobotStatus;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.google.gson.JsonObject;
 import com.qualcomm.ftccommon.FtcEventLoop;
-import com.qualcomm.hardware.lynx.EmbeddedControlHubModule;
-import com.qualcomm.hardware.lynx.LynxController;
-import com.qualcomm.hardware.lynx.LynxDcMotorController;
 import com.qualcomm.hardware.lynx.LynxModule;
-import com.qualcomm.hardware.lynx.LynxModuleIntf;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorController;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.configuration.ExpansionHubMotorControllerParamsState;
-import com.qualcomm.robotcore.robot.RobotState;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.util.ThreadPool;
 import com.qualcomm.robotcore.util.WebHandlerManager;
@@ -77,7 +61,6 @@ import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.function.Consumer;
 import org.firstinspires.ftc.robotcore.external.function.Continuation;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit;
 import org.firstinspires.ftc.robotcore.external.stream.CameraStreamSource;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
@@ -194,7 +177,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
      */
     public boolean isEnabled() { return core.enabled; }
 
-    private DashboardCore core = new DashboardCore();
+    public DashboardCore core = new DashboardCore();
 
     private NanoWSD server = new NanoWSD(8000) {
         @Override
@@ -1318,14 +1301,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.INIT;
 
-            hardwareOpMode = new HardwareOpMode(core);
+            hardwareOpMode = new HardwareOpMode();
             opModeManager.initOpMode("HardwareOpMode");
-
-            /*new Thread(() -> {
-                while (!Thread.currentThread().isInterrupted()) {
-                     o.opMode.init_loop();
-                }
-            }).start();*/
         });
 
         if (!(opMode instanceof HardwareOpMode)) {
@@ -1380,27 +1357,27 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             }
         }).start();
 
-//        (new Thread() {
-//            @Override
-//            public void run() {
-//                withHardwareRoot(new CustomVariableConsumer() {
-//                    @Override
-//                    public void accept(CustomVariable hardwareRoot) {
-//                        for (String[] var : varsToRemove) {
-//                            String category = var[0];
-//                            String name = var[1];
-//                            CustomVariable catVar =
-//                                    (CustomVariable) hardwareRoot.getVariable(category);
-//                            catVar.removeVariable(name);
-//                            if (catVar.size() == 0) {
-//                                hardwareRoot.removeVariable(category);
-//                            }
-//                        }
-//                        varsToRemove.clear();
-//                    }
-//                });
-//            }
-//        }).start();
+        /*(new Thread() {
+            @Override
+            public void run() {
+                withHardwareRoot(new CustomVariableConsumer() {
+                    @Override
+                    public void accept(CustomVariable hardwareRoot) {
+                        for (String[] var : varsToRemove) {
+                            String category = var[0];
+                            String name = var[1];
+                            CustomVariable catVar =
+                                    (CustomVariable) hardwareRoot.getVariable(category);
+                            catVar.removeVariable(name);
+                            if (catVar.size() == 0) {
+                                hardwareRoot.removeVariable(category);
+                            }
+                        }
+                        varsToRemove.clear();
+                    }
+                });
+            }
+        }).start();*/
 
         stopCameraStream();
     }
