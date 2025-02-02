@@ -16,46 +16,46 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 @TeleOp(name = "HardwareOpMode", group = "Dashboard")
 public class HardwareOpMode extends OpMode {
-    DashboardCore core;
+//    DashboardCore core;
     OpMode opMode;
 
-    public HardwareOpMode(DashboardCore core) {
-        this.core = core;
+    public HardwareOpMode(/*DashboardCore core*/) {
+//        this.core = core;
         this.opMode = this;
         System.out.println("HardwareOpMode constructed");
     }
 
     @Override
     public void init() {
-
+        System.out.println("HardwareOpMode init run");
     }
 
     @Override
     public void init_loop() {
         System.out.println("HardwareOpMode init_loop running");
-        core.withHardwareRoot(new CustomVariableConsumer() {
-            @Override
-            public void accept(CustomVariable hardwareRoot) {
-                if (opMode.hardwareMap != null) {
-                    setHardware(hardwareRoot);
-                    addHardware(hardwareRoot);
-                }
-            }
-        });
+//        core.withHardwareRoot(new CustomVariableConsumer() {
+//            @Override
+//            public void accept(CustomVariable hardwareRoot) {
+//                if (opMode.hardwareMap != null) {
+//                    setHardware(hardwareRoot);
+//                    addHardware(hardwareRoot);
+//                }
+//            }
+//        });
     }
 
     @Override
     public void loop() {
         System.out.println("HardwareOpMode loop running");
-        core.withHardwareRoot(new CustomVariableConsumer() {
-            @Override
-            public void accept(CustomVariable hardwareRoot) {
-                if (opMode.hardwareMap != null) {
-                    setHardware(hardwareRoot);
-                    addHardware(hardwareRoot);
-                }
-            }
-        });
+//        core.withHardwareRoot(new CustomVariableConsumer() {
+//            @Override
+//            public void accept(CustomVariable hardwareRoot) {
+//                if (opMode.hardwareMap != null) {
+//                    setHardware(hardwareRoot);
+//                    addHardware(hardwareRoot);
+//                }
+//            }
+//        });
     }
 
     private void setHardware(CustomVariable hardwareRoot) {
