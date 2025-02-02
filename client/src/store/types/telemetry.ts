@@ -76,7 +76,7 @@ export type TelemetryItem = {
   };
   replayOverlay?: {
     ops: DrawOp[];
-  }; // New field for replay overlay
+  };
   log: string[];
   timestamp: number;
 };

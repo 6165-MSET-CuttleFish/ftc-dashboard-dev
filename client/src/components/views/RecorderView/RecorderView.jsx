@@ -245,7 +245,6 @@ class RecorderView extends React.Component {
     );
 
     if (this.compareOverlays(prevOverlay, overlay)) {
-
       if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
         this.isRunning = true;
         this.startRecordingTime = Date.now();
@@ -492,9 +491,7 @@ class RecorderView extends React.Component {
       </BaseView>
     );
   }
-
 }
-
 
 RecorderView.propTypes = {
   telemetry: PropTypes.array.isRequired,

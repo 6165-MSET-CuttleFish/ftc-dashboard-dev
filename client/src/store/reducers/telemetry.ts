@@ -33,7 +33,7 @@ const telemetryReducer = (state = initialState, action) => {
         return {
           ...item,
           replayOverlay: {
-            ops: action.overlay,  // Access ops inside the overlay object
+            ops: action.overlay,
           },
         };
       });
