@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.util.Base64;
 import android.util.Log;
@@ -577,132 +578,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }
     }
 
-    private void addHardware(CustomVariable hardwareRoot) {
-        CustomVariable motors = new CustomVariable();
-
-        activeOpMode.with(o -> {
-            System.out.println("log of status opmode" + o.status.name());
-            if (o.opMode != null && o.status == RobotStatus.OpModeStatus.RUNNING) {
-                for (DcMotorSimple motor : o.opMode.hardwareMap.getAll(DcMotorSimple.class)) {
-                    CustomVariable motorVar = new CustomVariable();
-                    DcMotorEx motorEx = (DcMotorEx) motor;
-
-                    String s = o.opMode.hardwareMap.getNamesOf(motorEx).toArray()[0].toString() + motorEx.getController().getConnectionInfo();
-
-                    for (int i = 0; i < s.length(); i++) {
-                        if (Character.isDigit(s.charAt(i))) {
-                            s = s.substring(i);
-                        }
-                    }
-
-                    if (s.equals("173")) {
-                        s = "Control Hub";
-                    } else {
-                        s = "Expansion Hub " + s;
-                    }
-
-                    motorVar.putVariable("Power", createVariableFromDouble(motorEx.getPower()));
-                    motorVar.putVariable("Current Position", createVariableFromDouble(motorEx.getCurrentPosition()));
-                    motorVar.putVariable("Target Position", createVariableFromDouble(motorEx.getTargetPosition()));
-                    motorVar.putVariable("Current", createVariableFromDouble(motorEx.getCurrent(CurrentUnit.AMPS)));
-                    motorVar.putVariable(s + " Port", createVariableFromDouble(motorEx.getPortNumber()));
-
-                    motors.putVariable(o.opMode.hardwareMap.getNamesOf(motorEx).toArray()[0].toString(), motorVar);
-                }
-            } else {
-                System.out.println("Hardware methods require an active running OpMode");
-            }
-            System.out.println(o.status.name());
-        });
-
-        motors.putVariable("test motor", createVariableFromDouble(23424.433));
-
-        hardwareRoot.putVariable("Motors", motors);
-
-        CustomVariable servos = new CustomVariable();
-
-        activeOpMode.with(o -> {
-            System.out.println("log of status opmode" + o.status.name());
-            if (o.opMode != null && o.status == RobotStatus.OpModeStatus.RUNNING) {
-                for (Servo servo : o.opMode.hardwareMap.getAll(Servo.class)) {
-                    CustomVariable servoVar = new CustomVariable();
-
-                    String s = o.opMode.hardwareMap.getNamesOf(servo).toArray()[0].toString() + servo.getController().getConnectionInfo();
-
-                    for (int i = 0; i < s.length(); i++) {
-                        if (Character.isDigit(s.charAt(i))) {
-                            s = s.substring(i);
-                        }
-                    }
-
-                    if (s.equals("173")) {
-                        s = "Control Hub";
-                    } else {
-                        s = "Expansion Hub " + s;
-                    }
-
-                    servoVar.putVariable("Position", createVariableFromDouble(servo.getPosition()));
-                    servoVar.putVariable(s + " Port", createVariableFromDouble(servo.getPortNumber()));
-
-                    servos.putVariable(o.opMode.hardwareMap.getNamesOf(servo).toArray()[0].toString(), servoVar);
-                }
-            } else {
-                System.out.println("Hardware methods require an active running OpMode");
-            }
-        });
-
-        servos.putVariable("test servo", createVariableFromDouble(5757.099));
-
-        hardwareRoot.putVariable("Servos", servos);
-    }
-
-    private void setHardware(CustomVariable hardwareRoot) {
-        activeOpMode.with(o -> {
-            if (o.opMode != null) {
-                CustomVariable motorsVar = (CustomVariable) hardwareRoot.getVariable("Motors");
-                if (motorsVar != null) {
-                    for (DcMotorSimple motor : o.opMode.hardwareMap.getAll(DcMotorSimple.class)) {
-                        DcMotorEx motorEx = (DcMotorEx) motor;
-                        String motorName = o.opMode.hardwareMap.getNamesOf(motorEx).iterator().next();
-                        CustomVariable motorVar = (CustomVariable) motorsVar.getVariable(motorName);
-                        if (motorVar != null) {
-                            ConfigVariable<?> powerVar = motorVar.getVariable("Power");
-                            ConfigVariable<?> positionVar = motorVar.getVariable("Position");
-                            if (powerVar != null) {
-                                double power = (double) powerVar.getValue();
-                                motorEx.setPower(power);
-                            }
-                            if (positionVar != null) {
-                                int position = (int) Math.round((double) positionVar.getValue());
-                                try {
-                                    motorEx.setTargetPosition(position);
-                                    motorEx.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                                } catch (Exception e) {System.out.println("try catch print: " + e);}
-                            }
-                        }
-                    }
-                }
-
-                // Retrieve the "Servos" custom variable group
-                CustomVariable servosVar = (CustomVariable) hardwareRoot.getVariable("Servos");
-                if (servosVar != null) {
-                    for (Servo servo : o.opMode.hardwareMap.getAll(Servo.class)) {
-                        // Find the servo's name in the hardware map
-                        String servoName = servo.getDeviceName();
-                        CustomVariable servoVar = (CustomVariable) servosVar.getVariable(servoName);
-                        if (servoVar != null) {
-                            // Retrieve the position variable and set it, if present
-                            ConfigVariable<?> positionVar = servoVar.getVariable("Position");
-                            if (positionVar != null) {
-                                double position = (double) positionVar.getValue();
-                                servo.setPosition(position);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
     private class DashWebSocket extends NanoWSD.WebSocket implements SendFun {
         final SocketHandler sh = core.newSocket(this);
 
@@ -796,10 +671,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     }
 
     private FtcDashboard() {
-
-        hardwareOpMode = new HardwareOpMode(core);
-        RegisteredOpModes.getInstance().register("HardwareOpMode", hardwareOpMode);
-
         core.withConfigRoot(new CustomVariableConsumer() {
             @Override
             public void accept(CustomVariable configRoot) {
@@ -1443,17 +1314,18 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
     @Override
     public void onOpModePreInit(OpMode opMode) {
-
-
         activeOpMode.with(o -> {
-            o.opMode = hardwareOpMode;
+            o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.INIT;
-            new Thread(() -> {
+
+            hardwareOpMode = new HardwareOpMode(core);
+            opModeManager.initOpMode("HardwareOpMode");
+
+            /*new Thread(() -> {
                 while (!Thread.currentThread().isInterrupted()) {
                      o.opMode.init_loop();
                 }
-
-            }).start();
+            }).start();*/
         });
 
         if (!(opMode instanceof HardwareOpMode)) {
@@ -1464,21 +1336,23 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     @Override
     public void onOpModePreStart(OpMode opMode) {
         activeOpMode.with(o -> {
-            o.opMode = hardwareOpMode;
+            o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.RUNNING;
 
-            new Thread(() -> {
+            opModeManager.startActiveOpMode();
+
+            /*new Thread(() -> {
                 while (!Thread.currentThread().isInterrupted()) {
                     o.opMode.loop();
                 }
-            }).start();
+            }).start();*/
         });
     }
 
     @Override
     public void onOpModePostStop(OpMode opMode) {
         activeOpMode.with(o -> {
-            o.opMode = hardwareOpMode;
+            o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.STOPPED;
         });
 

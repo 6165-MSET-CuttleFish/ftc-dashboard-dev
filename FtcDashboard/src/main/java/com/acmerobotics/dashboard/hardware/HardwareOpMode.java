@@ -7,14 +7,15 @@ import com.acmerobotics.dashboard.DashboardCore;
 import com.acmerobotics.dashboard.config.variable.ConfigVariable;
 import com.acmerobotics.dashboard.config.variable.CustomVariable;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.Servo;
 
-public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
+@TeleOp(name = "HardwareOpMode", group = "Dashboard")
+public class HardwareOpMode extends OpMode {
     DashboardCore core;
     OpMode opMode;
 
@@ -22,6 +23,11 @@ public class HardwareOpMode extends OpModeManagerImpl.DefaultOpMode {
         this.core = core;
         this.opMode = this;
         System.out.println("HardwareOpMode constructed");
+    }
+
+    @Override
+    public void init() {
+
     }
 
     @Override
