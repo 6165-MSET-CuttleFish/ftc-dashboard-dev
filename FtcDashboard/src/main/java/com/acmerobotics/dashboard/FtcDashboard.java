@@ -1318,7 +1318,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.INIT;
 
-            hardwareOpMode = new HardwareOpMode(/*core*/);
+            hardwareOpMode = new HardwareOpMode(core);
             opModeManager.initOpMode("HardwareOpMode");
 
             /*new Thread(() -> {
