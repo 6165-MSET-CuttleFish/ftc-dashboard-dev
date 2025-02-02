@@ -26,7 +26,7 @@ class RecorderView extends React.Component {
 
     this.state = {
       savedReplays: [],
-      selectedReplay: '',
+      selectedReplays: [],
       replayUpdateInterval: 20,
       replayOnStart: false,
       autoSelect: false,
@@ -77,7 +77,7 @@ class RecorderView extends React.Component {
 
   handleSaveToLocalStorage = () => {
     const currentDate = new Date();
-    const formattedDate = currentDate.toISOString().split('.')[0]; // Removing milliseconds
+    const formattedDate = currentDate.toISOString().split('.')[0];
     const storageKey = `field_replay_${formattedDate}`;
 
     let totalSize = 0;
@@ -109,7 +109,7 @@ class RecorderView extends React.Component {
     if (selectedFiles.length === 0) return;
 
     this.setState({
-      selectedReplay: selectedFiles[0],
+      selectedReplays: selectedFiles,
     });
 
     this.telemetryReplay = [];
@@ -118,24 +118,26 @@ class RecorderView extends React.Component {
       const savedTelemetry = localStorage.getItem(filename);
       if (savedTelemetry) {
         const parsedTelemetry = JSON.parse(savedTelemetry);
-        this.telemetryReplay.push(parsedTelemetry); // Store each file's telemetry as a new array inside the 2D array
+        this.telemetryReplay.push(parsedTelemetry);
       }
     });
-    this.setState({ selectedReplays: selectedFiles });
   };
 
   handleDeleteReplay = () => {
-    const { selectedReplay } = this.state;
+    const { selectedReplays } = this.state;
 
-    if (!selectedReplay) return;
+    if (!selectedReplays || selectedReplays.length === 0) return;
 
-    localStorage.removeItem(selectedReplay);
+    selectedReplays.forEach((filename) => {
+      localStorage.removeItem(filename);
+    });
+
     this.telemetryReplay = [];
     this.currOps = [[]];
 
     this.setState((prevState) => ({
-      savedReplays: prevState.savedReplays.filter((file) => file !== selectedReplay),
-      selectedReplay: prevState.selectedReplay === selectedReplay ? '' : prevState.selectedReplay,
+      savedReplays: prevState.savedReplays.filter((file) => !selectedReplays.includes(file)),
+      selectedReplays: [],
     }));
   };
 
@@ -148,7 +150,7 @@ class RecorderView extends React.Component {
     this.telemetryReplay = [];
     this.currOps = [[]];
 
-    this.setState({ savedReplays: [], selectedReplay: '' });
+    this.setState({ savedReplays: [], selectedReplays: [] });
   };
 
   handleStartPlayback = () => {
@@ -381,16 +383,16 @@ class RecorderView extends React.Component {
 
             <button
                 onClick={this.handleDownloadSelectedReplays}
-                disabled={!this.state.selectedReplay}
+                disabled={!(this.state.selectedReplays.length > 0)}
                 style={{
                   padding: '0.5em 1em',
-                  backgroundColor: this.state.selectedReplay ? '#5bc0de' : '#ccc',
+                  backgroundColor: this.state.selectedReplays.length > 0 ? '#5bc0de' : '#ccc',
                   color: '#fff',
                   fontSize: '14px',
                   fontWeight: 'bold',
                   border: 'none',
                   borderRadius: '4px',
-                  cursor: this.state.selectedReplay ? 'pointer' : 'not-allowed',
+                  cursor: this.state.selectedReplays.length > 0 ? 'pointer' : 'not-allowed',
                   transition: 'background-color 0.3s ease',
                   marginLeft: '0.5em',
                 }}
@@ -400,16 +402,16 @@ class RecorderView extends React.Component {
 
             <button
               onClick={() => this.handleDeleteReplay()}
-              disabled={!this.state.selectedReplay}
+              disabled={!(this.state.selectedReplays.length > 0)}
               style={{
                 padding: '0.5em 1em',
-                backgroundColor: this.state.selectedReplay ? '#d9534f' : '#ccc',
+                backgroundColor: this.state.selectedReplays.length > 0 ? '#d9534f' : '#ccc',
                 color: '#fff',
                 fontSize: '14px',
                 fontWeight: 'bold',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: this.state.selectedReplay ? 'pointer' : 'not-allowed',
+                cursor: this.state.selectedReplays.length > 0 ? 'pointer' : 'not-allowed',
                 transition: 'background-color 0.3s ease',
                 marginLeft: '0.5em',
               }}
