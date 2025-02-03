@@ -561,6 +561,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }
     }
 
+
     private class DashWebSocket extends NanoWSD.WebSocket implements SendFun {
         final SocketHandler sh = core.newSocket(this);
 
@@ -678,6 +679,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         }
 
         injectStatusView();
+        enable();
     }
 
     private boolean getAutoEnable() {
@@ -1305,9 +1307,9 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
             opModeManager.initOpMode("HardwareOpMode");
         });
 
-        if (!(opMode instanceof HardwareOpMode)) {
-            clearTelemetry();
-        }
+//        if (!(opMode instanceof HardwareOpMode)) {
+//            clearTelemetry();
+//        }
     }
 
     @Override
@@ -1315,14 +1317,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         activeOpMode.with(o -> {
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.RUNNING;
-
-            opModeManager.startActiveOpMode();
-
-            /*new Thread(() -> {
-                while (!Thread.currentThread().isInterrupted()) {
-                    o.opMode.loop();
-                }
-            }).start();*/
         });
     }
 

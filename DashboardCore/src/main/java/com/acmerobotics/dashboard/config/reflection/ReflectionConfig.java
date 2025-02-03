@@ -130,7 +130,7 @@ public class ReflectionConfig {
         }
     }
 
-    public static ConfigVariable<Double> createVariableFromDouble(double value) {
+    public static <T> ConfigVariable<T> createVariableFromValue(T value) {
         return new BasicVariable<>(new VariableProvider<>(value));
     }
 }
