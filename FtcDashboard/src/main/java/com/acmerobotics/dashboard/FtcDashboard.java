@@ -74,7 +74,6 @@ import org.firstinspires.ftc.robotserver.internal.webserver.MimeTypesUtil;
  * Main class for interacting with the instance.
  */
 public class FtcDashboard implements OpModeManagerImpl.Notifications {
-    private boolean enableDiagnostics = true;
 
     private static final String TAG = "FtcDashboard";
 
@@ -88,7 +87,9 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
     private static FtcDashboard instance;
 
+    private boolean firstInit = true;
     private HardwareOpMode hardwareOpMode;
+    private boolean enableDiagnostics = true;
 
     @OpModeRegistrar
     public static void registerOpMode(OpModeManager manager) {
@@ -634,7 +635,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     updateGamepads(castMsg.getGamepad1(), castMsg.getGamepad2());
                     break;
                 }
-                
+
                 default: {
                     Log.w(TAG, "Received unknown message of type " + msg.getType());
                     Log.w(TAG, msg.toString());
@@ -1030,15 +1031,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
         core.updateConfig();
     }
 
-
-
-    /**
-     * Sends updated configuration data to all instance clients.
-     */
-    public void updateHardware() {
-        core.updateHardware();
-    }
-
     /**
      * Executes {@param function} in an exclusive context for thread-safe config tree modification
      * and calls {@link #updateConfig()} to keep clients up to date.
@@ -1049,10 +1041,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
      */
     public void withConfigRoot(CustomVariableConsumer function) {
         core.withConfigRoot(function);
-    }
-
-    public void withHardwareRoot(CustomVariableConsumer function) {
-        core.withHardwareRoot(function);
     }
 
     /**
@@ -1099,52 +1087,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
      */
     public void removeConfigVariable(String category, String name) {
         core.removeConfigVariable(category, name);
-    }
-
-    /**
-     * Add config variable with custom provider that is automatically removed when op mode ends.
-     *
-     * @param category top-level category
-     * @param name     variable name
-     * @param provider getter/setter for the variable
-     * @param <T>      variable type
-     */
-    public <T> void addHardwareVariable(String category, String name, ValueProvider<T> provider) {
-        core.addHardwareVariable(category, name, provider);
-    }
-
-    /**
-     * Add config variable with custom provider.
-     *
-     * @param category   top-level category
-     * @param name       variable name
-     * @param provider   getter/setter for the variable
-     * @param autoRemove if true, the variable is removed on op mode termination
-     * @param <T>        variable type
-     */
-    public <T> void addHardwareVariable(final String category, final String name,
-                                      final ValueProvider<T> provider,
-                                      final boolean autoRemove) {
-        withHardwareRoot(new CustomVariableConsumer() {
-            @Override
-            public void accept(CustomVariable hardwareRoot) {
-                core.addHardwareVariable(category, name, provider);
-
-                if (autoRemove) {
-                    varsToRemove.add(new String[] {category, name});
-                }
-            }
-        });
-    }
-
-    /**
-     * Remove a config variable.
-     *
-     * @param category top-level category
-     * @param name     variable name
-     */
-    public void removeHardwareVariable(String category, String name) {
-        core.removeHardwareVariable(category, name);
     }
 
     /**
@@ -1300,16 +1242,15 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
     @Override
     public void onOpModePreInit(OpMode opMode) {
         activeOpMode.with(o -> {
+            if (firstInit) {
+                hardwareOpMode = new HardwareOpMode();
+                opModeManager.initOpMode("HardwareOpMode");
+                firstInit = false;
+            }
+
             o.opMode = opMode;
             o.status = RobotStatus.OpModeStatus.INIT;
-
-            hardwareOpMode = new HardwareOpMode();
-            opModeManager.initOpMode("HardwareOpMode");
         });
-
-//        if (!(opMode instanceof HardwareOpMode)) {
-//            clearTelemetry();
-//        }
     }
 
     @Override
@@ -1350,28 +1291,6 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                 });
             }
         }).start();
-
-        /*(new Thread() {
-            @Override
-            public void run() {
-                withHardwareRoot(new CustomVariableConsumer() {
-                    @Override
-                    public void accept(CustomVariable hardwareRoot) {
-                        for (String[] var : varsToRemove) {
-                            String category = var[0];
-                            String name = var[1];
-                            CustomVariable catVar =
-                                    (CustomVariable) hardwareRoot.getVariable(category);
-                            catVar.removeVariable(name);
-                            if (catVar.size() == 0) {
-                                hardwareRoot.removeVariable(category);
-                            }
-                        }
-                        varsToRemove.clear();
-                    }
-                });
-            }
-        }).start();*/
 
         stopCameraStream();
     }
