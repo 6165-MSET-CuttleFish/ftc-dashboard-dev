@@ -13,7 +13,7 @@ apply plugin: "checkstyle"
 android {
     namespace 'com.acmerobotics.dashboard'
 
-    compileSdkVersion 35
+    compileSdkVersion 34
 
     defaultConfig {
         minSdkVersion 23
