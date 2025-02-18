@@ -11,9 +11,7 @@ apply plugin: "maven-publish"
 apply plugin: "checkstyle"
 
 android {
-    namespace 'com.acmerobotics.dashboard'
-
-    compileSdkVersion 34
+    compileSdkVersion 28
 
     defaultConfig {
         minSdkVersion 23
@@ -144,7 +142,7 @@ def addPomDependencies(root) {
 }
 
 task androidSourcesJar(type: Jar) {
-    archiveClassifier.set("sources")
+    classifier = "sources"
     from android.sourceSets.main.java.srcDirs
 }
 
@@ -156,7 +154,7 @@ task androidJavadocs(type: Javadoc) {
 }
 
 task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-    archiveClassifier.set("javadoc")
+    classifier = "javadoc"
     from androidJavadocs.destinationDir
 }
 
