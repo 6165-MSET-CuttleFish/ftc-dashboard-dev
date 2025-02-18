@@ -18,6 +18,8 @@ public class ConfigVariableSerializer implements JsonSerializer<ConfigVariable<?
         obj.add(ConfigVariable.TYPE_KEY,
             jsonSerializationContext.serialize(configVariable.getType()));
 
+        obj.add("__originalValue", jsonSerializationContext.serialize(configVariable.getOriginalValue()));
+
         if (value == null) {
             obj.add(ConfigVariable.VALUE_KEY, null);
             return obj;

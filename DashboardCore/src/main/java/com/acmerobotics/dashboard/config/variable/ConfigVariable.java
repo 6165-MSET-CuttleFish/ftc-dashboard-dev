@@ -22,6 +22,8 @@ public abstract class ConfigVariable<T> {
         RESERVED_KEYS.add(ENUM_VALUES_KEY);
     }
 
+    private T originalValue;
+
     public static boolean isReserved(String name) {
         return RESERVED_KEYS.contains(name);
     }
@@ -31,4 +33,16 @@ public abstract class ConfigVariable<T> {
     public abstract T getValue();
 
     public abstract void update(ConfigVariable<T> newVariable);
+
+    public void setOriginalValue(T value) {
+        this.originalValue = value;
+    }
+
+    public T getOriginalValue() {
+        return originalValue;
+    }
+
+    public boolean isModified() {
+        return originalValue != null && !originalValue.equals(getValue());
+    }
 }

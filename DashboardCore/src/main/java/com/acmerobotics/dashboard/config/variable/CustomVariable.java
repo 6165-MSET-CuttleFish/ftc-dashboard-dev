@@ -33,6 +33,13 @@ public class CustomVariable extends ConfigVariable<Object> {
         return variables.get(name);
     }
 
+    public boolean isModified() {
+        for (ConfigVariable<?> var : variables.values()) {
+            if (var.isModified()) return true;
+        }
+        return false;
+    }
+
     public int size() {
         return variables.size();
     }
