@@ -96,16 +96,7 @@ class BasicVariable extends React.Component<Props> {
                       onChange={onChange}
                       onSave={onSave}
                   />
-                  {state.__valid && (
-                      <p
-                          className="mx-3"
-                          style={{
-                            opacity: 0.5,
-                          }}
-                      >
-                        ({Number(state.__newValue)})
-                      </p>
-                  )}
+
                 </div>
             );
           }
@@ -148,36 +139,7 @@ class BasicVariable extends React.Component<Props> {
 
     return (
         <tr>
-          <td style={{ position: 'relative', paddingRight: '10px' }}>
-            {updated && (
-                <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                    }}
-                >
-                  <div
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        backgroundColor: 'red',
-                        borderRadius: '50%',
-                        opacity: 0.5, // Reduced opacity
-                      }}
-                  />
-                  <span
-                      style={{
-                        fontSize: '12px',
-                        color: '#555',
-                        opacity: 0.8,
-                      }}
-                  >
-                Original: {this.originalValue}
-              </span>
-                </div>
-            )}
-          </td>
+
           <td>
             <label htmlFor={path}>
             <span
@@ -199,6 +161,29 @@ class BasicVariable extends React.Component<Props> {
             </label>
           </td>
           <td>{input}</td>
+          <td style={{ position: 'relative', paddingRight: '10px' }}>
+                      {updated && (
+                          <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                              }}
+                          >
+                            <div
+                            />
+                            <span
+                                style={{
+                                  fontSize: '16px',
+                                  color: '#FFF',
+                                  opacity: 0.5,
+                                }}
+                            >
+                            {`(${this.originalValue})`}
+                        </span>
+                          </div>
+                      )}
+                    </td>
         </tr>
     );
   }
