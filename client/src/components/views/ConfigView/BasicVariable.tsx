@@ -66,14 +66,14 @@ class BasicVariable extends React.Component<Props> {
         case 'int':
         case 'long':
           input = (
-              <TextInput
-                  id={path}
-                  value={state.__newValue as number | string}
-                  valid={state.__valid}
-                  validate={validateInt}
-                  onChange={onChange}
-                  onSave={onSave}
-              />
+            <TextInput
+              id={path}
+              value={state.__newValue as number | string}
+              valid={state.__valid}
+              validate={validateInt}
+              onChange={onChange}
+              onSave={onSave}
+            />
           );
           break;
         case 'float':
@@ -82,109 +82,106 @@ class BasicVariable extends React.Component<Props> {
             input = <p>{state.__value}</p>;
           } else {
             input = (
-                <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                >
-                  <TextInput
-                      id={path}
-                      value={state.__newValue as number | string}
-                      valid={state.__valid}
-                      validate={validateDouble}
-                      onChange={onChange}
-                      onSave={onSave}
-                  />
-
-                </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <TextInput
+                  id={path}
+                  value={state.__newValue as number | string}
+                  valid={state.__valid}
+                  validate={validateDouble}
+                  onChange={onChange}
+                  onSave={onSave}
+                />
+              </div>
             );
           }
           break;
         case 'string':
           input = (
-              <TextInput
-                  id={path}
-                  value={state.__newValue as number | string}
-                  valid={state.__valid}
-                  validate={validateString}
-                  onChange={onChange}
-                  onSave={onSave}
-              />
+            <TextInput
+              id={path}
+              value={state.__newValue as number | string}
+              valid={state.__valid}
+              validate={validateString}
+              onChange={onChange}
+              onSave={onSave}
+            />
           );
           break;
         case 'boolean':
           input = (
-              <BooleanInput
-                  id={path}
-                  value={state.__newValue as boolean}
-                  onChange={onChange}
-                  onSave={onSave}
-              />
+            <BooleanInput
+              id={path}
+              value={state.__newValue as boolean}
+              onChange={onChange}
+              onSave={onSave}
+            />
           );
           break;
         case 'enum':
           input = (
-              <EnumInput
-                  id={path}
-                  value={state.__newValue as string}
-                  enumValues={state.__enumValues}
-                  onChange={onChange}
-                  onSave={onSave}
-              />
+            <EnumInput
+              id={path}
+              value={state.__newValue as string}
+              enumValues={state.__enumValues}
+              onChange={onChange}
+              onSave={onSave}
+            />
           );
           break;
       }
     }
 
     return (
-        <tr>
-
-          <td>
-            <label htmlFor={path}>
+      <tr>
+        <td>
+          <label htmlFor={path}>
             <span
-                style={
-                  modified
-                      ? {
-                        userSelect: 'auto',
-                        opacity: 1.0,
-                      }
-                      : {
-                        userSelect: 'none',
-                        opacity: 0.0,
-                      }
-                }
+              style={
+                modified
+                  ? {
+                      userSelect: 'auto',
+                      opacity: 1.0,
+                    }
+                  : {
+                      userSelect: 'none',
+                      opacity: 0.0,
+                    }
+              }
             >
               *
             </span>
-              {name}
-            </label>
-          </td>
-          <td>{input}</td>
-          <td style={{ position: 'relative', paddingRight: '10px' }}>
-                      {updated && (
-                          <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                              }}
-                          >
-                            <div
-                            />
-                            <span
-                                style={{
-                                  fontSize: '16px',
-                                  color: '#FFF',
-                                  opacity: 0.5,
-                                }}
-                            >
-                            {`(${this.originalValue})`}
-                        </span>
-                          </div>
-                      )}
-                    </td>
-        </tr>
+            {name}
+          </label>
+        </td>
+        <td>{input}</td>
+        <td style={{ position: 'relative', paddingRight: '10px' }}>
+          {updated && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <div />
+              <span
+                style={{
+                  fontSize: '16px',
+                  color: '#FFF',
+                  opacity: 0.5,
+                }}
+              >
+                {`(${this.originalValue})`}
+              </span>
+            </div>
+          )}
+        </td>
+      </tr>
     );
   }
 }
