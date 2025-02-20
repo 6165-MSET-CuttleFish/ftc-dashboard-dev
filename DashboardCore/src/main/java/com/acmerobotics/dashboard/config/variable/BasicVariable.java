@@ -18,7 +18,6 @@ public class BasicVariable<T> extends ConfigVariable<T> {
     public BasicVariable(VariableType type, ValueProvider<T> provider) {
         this.type = type;
         this.provider = provider;
-        setOriginalValue(provider.get());
     }
 
     @Override

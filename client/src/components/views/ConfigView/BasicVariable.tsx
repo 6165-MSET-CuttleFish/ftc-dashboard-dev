@@ -19,13 +19,10 @@ type Props = {
 };
 
 class BasicVariable extends React.Component<Props> {
-  originalValue = this.props.state.__value;
-
   render() {
     const { name, path, state } = this.props;
 
     const modified = state.__value !== state.__newValue;
-    const updated = this.originalValue !== state.__newValue;
 
     const onChange = (validatedValue: {
       value: string | number | boolean;
@@ -96,6 +93,16 @@ class BasicVariable extends React.Component<Props> {
                   onChange={onChange}
                   onSave={onSave}
                 />
+                {state.__valid && (
+                  <p
+                    className="mx-3"
+                    style={{
+                      opacity: 0.5,
+                    }}
+                  >
+                    ({Number(state.__newValue)})
+                  </p>
+                )}
               </div>
             );
           }
@@ -159,28 +166,6 @@ class BasicVariable extends React.Component<Props> {
           </label>
         </td>
         <td>{input}</td>
-        <td style={{ position: 'relative', paddingRight: '10px' }}>
-          {updated && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
-              <div />
-              <span
-                style={{
-                  fontSize: '16px',
-                  color: '#FFF',
-                  opacity: 0.5,
-                }}
-              >
-                {`(${this.originalValue})`}
-              </span>
-            </div>
-          )}
-        </td>
       </tr>
     );
   }
