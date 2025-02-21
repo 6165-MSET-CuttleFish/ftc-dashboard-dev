@@ -43,6 +43,7 @@ export type BasicVarState = (
 
 export type ConfigState = {
   configRoot: ConfigVarState;
+  deployedConfigRoot: ConfigVarState;
 };
 
 export type ReceiveConfigAction = {

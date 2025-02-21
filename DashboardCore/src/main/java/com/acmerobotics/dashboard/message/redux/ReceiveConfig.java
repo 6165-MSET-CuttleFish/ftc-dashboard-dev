@@ -6,10 +6,16 @@ import com.acmerobotics.dashboard.message.MessageType;
 
 public class ReceiveConfig extends Message {
     private CustomVariable configRoot;
+    private CustomVariable deployedConfigRoot;
 
-    public ReceiveConfig(CustomVariable configRoot) {
+    public ReceiveConfig(CustomVariable configRoot, CustomVariable deployedConfigRoot) {
         super(MessageType.RECEIVE_CONFIG);
 
         this.configRoot = configRoot;
+        this.deployedConfigRoot = deployedConfigRoot;
+    }
+
+    public CustomVariable getDeployedConfigRoot() {
+        return deployedConfigRoot;
     }
 }

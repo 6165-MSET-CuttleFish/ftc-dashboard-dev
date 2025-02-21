@@ -54,6 +54,12 @@ class BasicVariable extends React.Component<Props> {
       }
     };
 
+    const deployedValue = useSelector(
+      (state: RootState) => state.config.deployedConfigRoot.__value?.[path]
+    );
+
+    const isModifiedFromDeployed = deployedValue !== undefined && deployedValue.__value !== state.__newValue;
+
     let input;
 
     if (state.__newValue === null) {
@@ -70,6 +76,7 @@ class BasicVariable extends React.Component<Props> {
               validate={validateInt}
               onChange={onChange}
               onSave={onSave}
+              className={isModifiedFromDeployed ? "border-orange-500" : ""}
             />
           );
           break;
@@ -92,6 +99,7 @@ class BasicVariable extends React.Component<Props> {
                   validate={validateDouble}
                   onChange={onChange}
                   onSave={onSave}
+                  className={isModifiedFromDeployed ? "border-orange-500" : ""}
                 />
                 {state.__valid && (
                   <p
@@ -116,6 +124,7 @@ class BasicVariable extends React.Component<Props> {
               validate={validateString}
               onChange={onChange}
               onSave={onSave}
+              className={isModifiedFromDeployed ? "border-orange-500" : ""}
             />
           );
           break;
@@ -126,6 +135,7 @@ class BasicVariable extends React.Component<Props> {
               value={state.__newValue as boolean}
               onChange={onChange}
               onSave={onSave}
+              className={isModifiedFromDeployed ? "border-orange-500" : ""}
             />
           );
           break;
@@ -137,6 +147,7 @@ class BasicVariable extends React.Component<Props> {
               enumValues={state.__enumValues}
               onChange={onChange}
               onSave={onSave}
+              className={isModifiedFromDeployed ? "border-orange-500" : ""}
             />
           );
           break;

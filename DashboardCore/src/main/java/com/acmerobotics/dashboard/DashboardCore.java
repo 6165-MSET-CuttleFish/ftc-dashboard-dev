@@ -103,7 +103,12 @@ public class DashboardCore {
             @Override
             public void onOpen() {
                 configRoot.with(v -> {
-                    sendFun.send(new ReceiveConfig(v));
+                    CustomVariable deployedConfig = SaveConfig.getLastDeployedConfig();
+                    if (deployedConfig == null) {
+                        deployedConfig = v;
+                    }
+
+                    sendFun.send(new ReceiveConfig(v, deployedConfig));
                 });
 
                 sockets.with(l -> {
@@ -128,7 +133,12 @@ public class DashboardCore {
                 switch (message.getType()) {
                     case GET_CONFIG: {
                         configRoot.with(v -> {
-                            sendFun.send(new ReceiveConfig(v));
+                            CustomVariable deployedConfig = SaveConfig.getLastDeployedConfig();
+                            if (deployedConfig == null) {
+                                deployedConfig = v;
+                            }
+
+                            sendFun.send(new ReceiveConfig(v, deployedConfig));
                         });
                         return true;
                     }
@@ -210,7 +220,12 @@ public class DashboardCore {
      */
     public void updateConfig() {
         configRoot.with(v -> {
-            sendAll(new ReceiveConfig(v));
+            CustomVariable deployedConfig = SaveConfig.getLastDeployedConfig();
+            if (deployedConfig == null) {
+                deployedConfig = v;
+            }
+
+            sendAll(new ReceiveConfig(v, deployedConfig));
         });
     }
 

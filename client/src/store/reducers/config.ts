@@ -121,25 +121,20 @@ function revertModified(state: ConfigVarState): ConfigVarState {
 }
 
 const initialState: ConfigState = {
-  configRoot: {
-    __type: 'custom',
-    __value: {},
-  },
+  configRoot: { __type: 'custom', __value: {} },
+  deployedConfigRoot: { __type: 'custom', __value: {} },
 };
 
 const configReducer = (
   state: ConfigState = initialState,
-  action:
-    | ReceiveConfigAction
-    | UpdateConfigAction
-    | SaveConfigAction
-    | RefreshConfigAction,
+  action: ReceiveConfigAction | UpdateConfigAction | SaveConfigAction | RefreshConfigAction,
 ): ConfigState => {
   switch (action.type) {
     case 'RECEIVE_CONFIG':
       return {
         ...state,
         configRoot: mergeModified(state.configRoot, action.configRoot),
+        deployedConfigRoot: inflate(action.deployedConfigRoot),
       };
     case 'UPDATE_CONFIG':
       return {
