@@ -13,6 +13,10 @@ public class SaveConfig extends Message {
         this.configDiff = configDiff;
     }
 
+    public boolean hasModifications() {
+        return configDiff.isModified();
+    }
+
     public CustomVariable getConfigDiff() {
         return configDiff;
     }

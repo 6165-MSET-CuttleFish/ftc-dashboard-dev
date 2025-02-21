@@ -15,6 +15,7 @@ interface Props {
   name: string;
   path: string;
   state: CustomVarState;
+  isModified?: boolean;
   onChange: (state: CustomVarState) => void;
   onSave: (variable: CustomVar) => void;
 }
@@ -42,7 +43,7 @@ class CustomVariable extends Component<Props, State> {
 
   renderHelper(name: string, children: ReactNode) {
     return (
-      <tr className="block">
+      <tr className={clsx("block", this.props.isModified && "modified")}>
         <td className="block">
           <div
             className="option-header cursor-pointer py-1"
@@ -59,7 +60,9 @@ class CustomVariable extends Component<Props, State> {
               <ExpandedMoreIcon className="h-6 w-6" />
             </div>
             <div className="flex items-center justify-between">
-              <h3 className="select-none text-lg">{name}</h3>
+              <h3 className={clsx("select-none text-lg", this.props.isModified && "text-orange-600")}>
+                {name} {this.props.isModified && "⚠️"} {/* Show warning icon */}
+              </h3>
             </div>
           </div>
           {this.state.expanded && (
@@ -119,6 +122,7 @@ class CustomVariable extends Component<Props, State> {
             name={key}
             path={`${path}.${key}`}
             state={child}
+            isModified={child.__modified === true}
             onChange={onChange}
             onSave={onSave}
           />

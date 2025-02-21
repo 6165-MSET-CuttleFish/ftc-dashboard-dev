@@ -7,6 +7,8 @@ import java.util.Set;
  * Type-independent dashboard configuration variable.
  */
 public abstract class ConfigVariable<T> {
+    private boolean isModified = false;
+
     public static final String TYPE_KEY = "__type";
     public static final String VALUE_KEY = "__value";
     public static final String ENUM_CLASS_KEY = "__enumClass";
@@ -20,6 +22,14 @@ public abstract class ConfigVariable<T> {
         RESERVED_KEYS.add(VALUE_KEY);
         RESERVED_KEYS.add(ENUM_CLASS_KEY);
         RESERVED_KEYS.add(ENUM_VALUES_KEY);
+    }
+
+    public boolean isModified() {
+        return isModified;
+    }
+
+    protected void markModified() {
+        this.isModified = true;
     }
 
     public static boolean isReserved(String name) {

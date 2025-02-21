@@ -49,7 +49,7 @@ function validAndModified(state: ConfigVarState): ConfigVar | null {
     }
   } else {
     // TODO: keep in sync with the corresponding check in BasicVariable
-    if (!state.__valid || state.__value === state.__newValue) {
+    if (!state.__valid || (state.__value === state.__newValue && state.__modified !== true)) {
       return null;
     }
 
@@ -131,8 +131,8 @@ const ConfigView = ({
                 key={key}
                 name={key}
                 path={id ? `${id}.${key}` : key}
-                // invariant 2: children of the root are custom
                 state={rootValue[key] as CustomVarState}
+                isModified={rootValue[key].__modified || false}
                 onChange={(newState) =>
                   dispatch({
                     type: 'UPDATE_CONFIG',

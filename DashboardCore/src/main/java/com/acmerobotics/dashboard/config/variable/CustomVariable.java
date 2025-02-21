@@ -58,7 +58,11 @@ public class CustomVariable extends ConfigVariable<Object> {
             CustomVariable newCustomVariable = (CustomVariable) newVariable;
             for (Map.Entry<String, ConfigVariable> entry : newCustomVariable.variables.entrySet()) {
                 ConfigVariable newChildVariable = newCustomVariable.getVariable(entry.getKey());
-                getVariable(entry.getKey()).update(newChildVariable);
+                ConfigVariable currentChild = getVariable(entry.getKey());
+                if (!currentChild.getValue().equals(newChildVariable.getValue())) {
+                    markModified();
+                }
+                currentChild.update(newChildVariable);
             }
         } else {
             throw new RuntimeException();
