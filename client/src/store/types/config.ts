@@ -1,5 +1,5 @@
 export type ConfigVar = CustomVar | BasicVar;
-export type ConfigVarState = (CustomVarState | BasicVarState) & { __modified?: boolean };
+export type ConfigVarState = CustomVarState | BasicVarState;
 
 export type CustomVar = {
   __type: 'custom';
@@ -9,7 +9,6 @@ export type CustomVar = {
 export type CustomVarState = {
   __type: 'custom';
   __value: Record<string, ConfigVarState> | null;
-  __modified?: boolean;
 };
 
 export type BasicVar =
@@ -40,7 +39,6 @@ export type BasicVarState = (
     }
 ) & {
   __valid: boolean;
-  __modified?: boolean;
 };
 
 export type ConfigState = {

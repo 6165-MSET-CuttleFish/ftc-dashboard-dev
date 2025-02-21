@@ -32,9 +32,6 @@ public class BasicVariable<T> extends ConfigVariable<T> {
 
     @Override
     public void update(ConfigVariable<T> newVariable) {
-        if (!provider.get().equals(newVariable.getValue())) {
-            provider.set(newVariable.getValue());
-            markModified();
-        }
+        provider.set(newVariable.getValue());
     }
 }

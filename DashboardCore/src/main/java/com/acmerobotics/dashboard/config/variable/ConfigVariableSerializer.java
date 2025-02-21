@@ -15,9 +15,6 @@ public class ConfigVariableSerializer implements JsonSerializer<ConfigVariable<?
         Object value = configVariable.getValue();
 
         JsonObject obj = new JsonObject();
-
-        obj.add("isModified", new JsonPrimitive(configVariable.isModified()));
-
         obj.add(ConfigVariable.TYPE_KEY,
             jsonSerializationContext.serialize(configVariable.getType()));
 
