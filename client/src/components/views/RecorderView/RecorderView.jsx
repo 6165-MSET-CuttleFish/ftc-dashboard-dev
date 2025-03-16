@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { setReplayOverlay, receiveTelemetry } from '@/store/actions/telemetry';
+import { receiveTelemetry } from '@/store/actions/telemetry';
+import { setReplayOverlay } from '@/store/actions/replay';
 
 import BaseView, { BaseViewHeading } from '@/components/views/BaseView';
 import AutoFitCanvas from '@/components/Canvas/AutoFitCanvas';
@@ -20,13 +21,18 @@ class RecorderView extends React.Component {
     this.isRunning = false;
     this.isReplaying = false;
 
-    this.telemetryRecording = [];
-    this.telemetryReplay = [];
+    this.telemetryRecordingMaxSize = 20; // 2:30 minutes at 15ms looptimes, should be more than necessary
+
+    this.telemetryRecording = new Array(this.telemetryRecordingMaxSize);
+    this.telemetryRecordingWriteIndex = 0;
+    this.telemetryRecordingSize = 0;
+
     this.currOps = [];
 
     this.state = {
       savedReplays: [],
       selectedReplays: [],
+      telemetryReplay: [],
       replayUpdateInterval: 20,
       replayOnStart: false,
       autoSelect: false,
@@ -105,21 +111,21 @@ class RecorderView extends React.Component {
   };
 
   handleLoadTelemetryByFilename = (event) => {
-    const selectedFiles = Array.from(event.target.selectedOptions, (option) => option.value);
-    if (selectedFiles.length === 0) return;
+    const selectedFiles = [...event.target.selectedOptions].map((option) => option.value);
+    if (selectedFiles.length == 0) return;
 
-    this.setState({
-      selectedReplays: selectedFiles,
-    });
-
-    this.telemetryReplay = [];
-
+    let fileReplayData = [];
     selectedFiles.forEach((filename) => {
       const savedTelemetry = localStorage.getItem(filename);
       if (savedTelemetry) {
         const parsedTelemetry = JSON.parse(savedTelemetry);
-        this.telemetryReplay.push(parsedTelemetry);
+        fileReplayData.push(parsedTelemetry);
       }
+    });
+
+    this.setState({
+      selectedReplays: selectedFiles,
+      telemetryReplay: fileReplayData,
     });
   };
 
@@ -132,7 +138,7 @@ class RecorderView extends React.Component {
       localStorage.removeItem(filename);
     });
 
-    this.telemetryReplay = [];
+    this.state.telemetryReplay = [];
     this.currOps = [[]];
 
     this.setState((prevState) => ({
@@ -147,7 +153,7 @@ class RecorderView extends React.Component {
     if (savedReplays.length === 0) return;
 
     savedReplays.forEach((filename) => localStorage.removeItem(filename));
-    this.telemetryReplay = [];
+    this.state.telemetryReplay = [];
     this.currOps = [[]];
 
     this.setState({ savedReplays: [], selectedReplays: [] });
@@ -164,9 +170,9 @@ class RecorderView extends React.Component {
   };
 
   startPlayback = () => {
-    if (this.telemetryReplay.length === 0) return;
+    if (this.state.telemetryReplay.length === 0) return;
 
-    let lastIndex = new Array(this.telemetryReplay.length).fill(0);
+    let lastIndex = new Array(this.state.telemetryReplay.length).fill(0);
     let playbackComplete = false;
     let ops = [[]];
 
@@ -176,10 +182,10 @@ class RecorderView extends React.Component {
       const elapsedTime = Date.now() - this.startReplayTime;
       const timeRangeEnd = elapsedTime + this.state.replayUpdateInterval / 2;
 
-      for (let replayIndex = 0; replayIndex < this.telemetryReplay.length; replayIndex++) {
+      for (let replayIndex = 0; replayIndex < this.state.telemetryReplay.length; replayIndex++) {
         let isUpdated = false;
-        for (let i = lastIndex[replayIndex]; i < this.telemetryReplay[replayIndex].length; i++) {
-          const entry = this.telemetryReplay[replayIndex][i];
+        for (let i = lastIndex[replayIndex]; i < this.state.telemetryReplay[replayIndex].length; i++) {
+          const entry = this.state.telemetryReplay[replayIndex][i];
 
           if (entry.timestamp <= timeRangeEnd) {
             if (!isUpdated) {
@@ -200,7 +206,7 @@ class RecorderView extends React.Component {
         this.props.setReplayOverlay(this.currOps);
       }
 
-      if (lastIndex.every((index, idx) => index >= (this.telemetryReplay[idx]?.length || 0))) {
+      if (lastIndex.every((index, idx) => index >= (this.state.telemetryReplay[idx]?.length || 0))) {
         playbackComplete = true;
       }
 
@@ -258,19 +264,23 @@ class RecorderView extends React.Component {
     }
 
     if (this.isRunning) {
-      const overlay = this.props.telemetry.reduce(
-        (acc, { fieldOverlay }) => ({
-          ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
-        }),
-        { ops: [] }
-      );
-
       if (overlay.ops.length > 0) {
         const relativeTimestamp = Date.now() - this.startRecordingTime;
-        this.telemetryRecording.push({
+        const newData = {
           timestamp: relativeTimestamp,
           ops: overlay.ops,
-        });
+        };
+
+        // buffer check
+        if (this.telemetryRecordingSize < this.telemetryRecordingMaxSize) {
+          this.telemetryRecording[this.telemetryRecordingWriteIndex] = newData;
+          this.telemetryRecordingSize += 1;
+        } else {
+          // Overwrite @ writeIndex
+          this.telemetryRecording[this.telemetryRecordingWriteIndex] = newData;
+        }
+
+        this.telemetryRecordingWriteIndex = (this.telemetryRecordingWriteIndex + 1) % this.telemetryRecordingMaxSize;
       }
     }
 
