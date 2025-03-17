@@ -21,11 +21,11 @@ class RecorderView extends React.Component {
     this.isRunning = false;
     this.isReplaying = false;
 
-    this.telemetryRecordingMaxSize = 20; // 2:30 minutes at 15ms looptimes, should be more than necessary
+    this.telemetryRecordingMaxSize = 10000; // 10000 is = 2:30 minutes at 15ms looptimes, should be more than necessary
+    this.perReplaySizeLimit = 104857 * 2; // 0.2MB, so can store up to 25 replays
 
     this.telemetryRecording = new Array(this.telemetryRecordingMaxSize);
     this.telemetryRecordingWriteIndex = 0;
-    this.telemetryRecordingSize = 0;
 
     this.currOps = [];
 
@@ -92,7 +92,7 @@ class RecorderView extends React.Component {
       totalSize += new Blob([localStorage.getItem(key)]).size;
     }
 
-    const dataToSave = JSON.stringify(this.telemetryRecording);
+    let dataToSave = JSON.stringify(this.telemetryRecording);
     const newDataSize = new Blob([dataToSave]).size;
 
     const maxStorageSize = 5 * 1024 * 1024;
@@ -103,7 +103,25 @@ class RecorderView extends React.Component {
          this.setState({ errorMessage: '' });
        }, 5000);
        return;
-     }
+    }
+    if (newDataSize > this.perReplaySizeLimit) {
+        this.setState({ errorMessage: 'Trimming replay: Per-Replay size limit exceeded.' });
+
+        setTimeout(() => {
+          this.setState({ errorMessage: '' });
+        }, 5000);
+
+
+        // Calculate the current size ratio to the per file max size
+        const ratioToMaxSize = this.perReplaySizeLimit / newDataSize;
+
+        // Determine how many elements we need to keep based on the ratio
+        const elementsToKeep = Math.floor(this.telemetryRecording.length * ratioToMaxSize);
+
+        // Slice the array from 0 to bound
+        const trimmed = this.telemetryRecording.slice(0, elementsToKeep);
+        dataToSave = JSON.stringify(trimmed);
+      }
 
     localStorage.setItem(storageKey, dataToSave);
 
@@ -253,6 +271,8 @@ class RecorderView extends React.Component {
     if (this.compareOverlays(prevOverlay, overlay)) {
       if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
         this.isRunning = true;
+        this.telemetryRecordingWriteIndex = 0;
+        this.props.setReplayOverlay([]);
         this.startRecordingTime = Date.now();
         this.telemetryRecording = [];
         this.currOps = [];
@@ -264,23 +284,30 @@ class RecorderView extends React.Component {
     }
 
     if (this.isRunning) {
+      const overlay = this.props.telemetry.reduce(
+        (acc, { fieldOverlay }) => ({
+          ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+        }),
+        { ops: [] }
+      );
+
       if (overlay.ops.length > 0) {
         const relativeTimestamp = Date.now() - this.startRecordingTime;
+        const overlay = this.props.telemetry.reduce(
+            (acc, { fieldOverlay }) => ({
+              ops: [...acc.ops, ...(fieldOverlay?.ops || [])],
+            }),
+            { ops: [] }
+        );
         const newData = {
           timestamp: relativeTimestamp,
           ops: overlay.ops,
         };
 
-        // buffer check
-        if (this.telemetryRecordingSize < this.telemetryRecordingMaxSize) {
-          this.telemetryRecording[this.telemetryRecordingWriteIndex] = newData;
-          this.telemetryRecordingSize += 1;
-        } else {
-          // Overwrite @ writeIndex
-          this.telemetryRecording[this.telemetryRecordingWriteIndex] = newData;
+        if (this.telemetryRecordingWriteIndex < this.telemetryRecordingMaxSize) {
+            this.telemetryRecording[this.telemetryRecordingWriteIndex] = newData;
+            this.telemetryRecordingWriteIndex++;
         }
-
-        this.telemetryRecordingWriteIndex = (this.telemetryRecordingWriteIndex + 1) % this.telemetryRecordingMaxSize;
       }
     }
 
@@ -332,10 +359,6 @@ class RecorderView extends React.Component {
             </div>
           )}
         </BaseViewHeading>
-
-        <div className="canvas-container" style={{ marginBottom: '1.5em' }}>
-          <AutoFitCanvas ref={this.canvasRef} containerHeight="calc(100% - 3em)" />
-        </div>
 
         <div className="controls-container" style={{ textAlign: 'center' }}>
           <button
