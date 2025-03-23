@@ -28,7 +28,7 @@ export type {
   GamepadState,
   GamepadConnectionState,
   GamepadConnectedAction,
-  GamepadDisconnectedAction, // Fixed typo
+  GamepadDisonnectedAction,
   ReceiveGamepadStateAction,
 } from './gamepad';
 
