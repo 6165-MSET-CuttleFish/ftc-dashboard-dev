@@ -78,7 +78,7 @@ class FieldView extends React.Component {
 
 FieldView.propTypes = {
   telemetry: PropTypes.arrayOf(PropTypes.object).isRequired,
-  replayOps: PropTypes.arrayOf(PropTypes.object).isRequired, // Add replayOps prop
+  replayOps: PropTypes.arrayOf(PropTypes.object),
   isDraggable: PropTypes.bool,
   isUnlocked: PropTypes.bool,
 };
