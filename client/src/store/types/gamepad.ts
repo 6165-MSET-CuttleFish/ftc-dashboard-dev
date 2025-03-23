@@ -44,7 +44,7 @@ export type GamepadConnectedAction = {
   user: number;
 };
 
-export type GamepadDisonnectedAction = {
+export type GamepadDisconnectedAction = {
   type: typeof GAMEPAD_DISCONNECTED;
   user: number;
 };
