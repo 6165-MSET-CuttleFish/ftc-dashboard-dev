@@ -173,10 +173,9 @@ class RecorderView extends React.Component {
     if (savedReplays.length === 0) return;
 
     savedReplays.forEach((filename) => localStorage.removeItem(filename));
-    this.state.telemetryReplay = [];
     this.currOps = [[]];
 
-    this.setState({ savedReplays: [], selectedReplays: [] });
+    this.setState({ telemetryReplay: [], savedReplays: [], selectedReplays: [] });
   };
 
   handleUploadReplay = (event) => {
