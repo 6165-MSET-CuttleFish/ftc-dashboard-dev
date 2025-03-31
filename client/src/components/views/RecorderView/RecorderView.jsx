@@ -45,7 +45,6 @@ class RecorderView extends React.Component {
   }
 
   loadSavedReplays = () => {
-      console.error("called")
     const keys = Object.keys(localStorage).filter((key) =>
       key.startsWith('field_replay_')
     );
@@ -425,6 +424,7 @@ class RecorderView extends React.Component {
                 style={{
                   padding: '0.5em',
                   fontSize: '14px',
+                  color: 'black',
                   borderRadius: '4px',
                   border: '1px solid #ccc',
                   cursor: 'pointer',
