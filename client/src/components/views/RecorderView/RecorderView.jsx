@@ -45,6 +45,7 @@ class RecorderView extends React.Component {
   }
 
   loadSavedReplays = () => {
+      console.error("called")
     const keys = Object.keys(localStorage).filter((key) =>
       key.startsWith('field_replay_')
     );
@@ -58,7 +59,7 @@ class RecorderView extends React.Component {
   handleDownloadSelectedReplays = () => {
     const { selectedReplays } = this.state;
 
-    if (!selectedReplays || selectedReplays.length === 0) {
+    if (!selectedReplays) {
       return;
     }
 
@@ -83,7 +84,9 @@ class RecorderView extends React.Component {
 
   handleSaveToLocalStorage = () => {
     const currentDate = new Date();
-    const formattedDate = currentDate.toISOString().split('.')[0];
+    const formattedDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}` +
+        `_T${String(currentDate.getHours()).padStart(2, '0')}_${String(currentDate.getMinutes()).padStart(2, '0')}_${String(currentDate.getSeconds()).padStart(2, '0')}`;
+
     const storageKey = `field_replay_${formattedDate}`;
 
     let totalSize = 0;
@@ -156,13 +159,13 @@ class RecorderView extends React.Component {
       localStorage.removeItem(filename);
     });
 
-    this.state.telemetryReplay = [];
-    this.currOps = [[]];
-
     this.setState((prevState) => ({
-      savedReplays: prevState.savedReplays.filter((file) => !selectedReplays.includes(file)),
-      selectedReplays: [],
-    }));
+        savedReplays: prevState.savedReplays.filter((file) => !selectedReplays.includes(file)),
+        selectedReplays: [],
+        telemetryReplay: [],
+      }));
+
+    this.currOps = [[]];
   };
 
   handleDeleteAllReplays = () => {
@@ -177,6 +180,32 @@ class RecorderView extends React.Component {
     this.setState({ savedReplays: [], selectedReplays: [] });
   };
 
+  handleUploadReplay = (event) => {
+      const files = event.target.files;
+      if (!files) return;
+
+      Array.from(files).forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const parsedData = JSON.parse(e.target.result);
+            if (!Array.isArray(parsedData)) {
+              alert(`Invalid file format in ${file.name}. Expected an array of telemetry data.`);
+              return;
+            }
+
+            const fileName = file.name.replace('.json', '');
+            localStorage.setItem(fileName, JSON.stringify(parsedData));
+            this.loadSavedReplays()
+          } catch (error) {
+            alert(`Error parsing JSON file: ${file.name}`);
+          }
+        };
+        reader.readAsText(file);
+      });
+    event.target.value = '';
+  };
+
   handleStartPlayback = () => {
     if (this.playbackInterval) {
       clearInterval(this.playbackInterval);
@@ -188,7 +217,7 @@ class RecorderView extends React.Component {
   };
 
   startPlayback = () => {
-    if (this.state.telemetryReplay.length === 0) return;
+    if (this.state.telemetryReplay.length == 0) return;
 
     let lastIndex = new Array(this.state.telemetryReplay.length).fill(0);
     let playbackComplete = false;
@@ -319,7 +348,7 @@ class RecorderView extends React.Component {
         { ops: [] }
       );
       const currOpsStr = JSON.stringify(this.currOps);
-      if (replayOps.ops.length === 0 && currOpsStr !== JSON.stringify(replayOps.ops) && currOpsStr.length > 0) {
+      if (replayOps.ops.length == 0 && currOpsStr !== JSON.stringify(replayOps.ops) && currOpsStr.length > 0) {
         this.props.setReplayOverlay(this.currOps);
       }
     }
@@ -412,6 +441,32 @@ class RecorderView extends React.Component {
               </select>
             </div>
 
+            <input
+                type="file"
+                accept=".json"
+                multiple
+                ref={(input) => (this.fileInput = input)}
+                style={{ display: 'none' }}
+                onChange={this.handleUploadReplay}
+              />
+
+              <button
+                onClick={() => this.fileInput.click()}
+                className={`
+                  border border-green-200 bg-green-100 transition-colors
+                  dark:border-transparent dark:bg-green-500 dark:text-green-50 dark:highlight-white/30
+                  dark:hover:border-green-300/80 dark:focus:bg-green-600
+                `}
+                style={{
+                  padding: '0.5em 1em',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s ease',
+                  marginLeft: '0.5em',
+                }}
+              >
+                <DownloadSVG className="h-6 w-6" style={{ transform: 'rotate(180deg)' }} />
+              </button>
 
             <button
                 onClick={this.handleDownloadSelectedReplays}
@@ -453,7 +508,7 @@ class RecorderView extends React.Component {
 
             <button
               onClick={this.handleDeleteAllReplays}
-              disabled={this.state.savedReplays.length === 0}
+              disabled={this.state.savedReplays.length == 0}
               style={{
                 padding: '0.5em 1em',
                 backgroundColor: this.state.savedReplays.length > 0 ? '#d9534f' : '#ccc',
@@ -474,24 +529,6 @@ class RecorderView extends React.Component {
             </button>
           </div>
 
-          <div style={{ marginTop: '1.5em' }}>
-            <label htmlFor="replayUpdateInterval" style={{ marginRight: '0.5em' }}>
-              Replay Update Interval (ms):
-            </label>
-            <input
-              type="number"
-              id="replayUpdateInterval"
-              value={this.state.replayUpdateInterval}
-              onChange={this.handleReplayUpdateIntervalChange}
-              style={{
-                padding: '0.5em',
-                fontSize: '14px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                marginRight: '0.5em',
-              }}
-            />
-          </div>
           <div style={{ marginTop: '1.5em' }}>
             <label htmlFor="replayOnStart" style={{ marginRight: '0.5em' }}>
               Start Replay with OpMode:
