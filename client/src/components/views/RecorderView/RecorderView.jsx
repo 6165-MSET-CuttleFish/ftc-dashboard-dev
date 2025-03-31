@@ -132,7 +132,7 @@ class RecorderView extends React.Component {
 
   handleLoadTelemetryByFilename = (event) => {
     const selectedFiles = [...event.target.selectedOptions].map((option) => option.value);
-    if (selectedFiles.length == 0) return;
+    if (!selectedFiles.length) return;
 
     let fileReplayData = [];
     selectedFiles.forEach((filename) => {
@@ -152,7 +152,7 @@ class RecorderView extends React.Component {
   handleDeleteReplay = () => {
     const { selectedReplays } = this.state;
 
-    if (!selectedReplays || selectedReplays.length === 0) return;
+    if (!selectedReplays.length) return;
 
     selectedReplays.forEach((filename) => {
       localStorage.removeItem(filename);
@@ -170,7 +170,7 @@ class RecorderView extends React.Component {
   handleDeleteAllReplays = () => {
     const { savedReplays } = this.state;
 
-    if (savedReplays.length === 0) return;
+    if (!savedReplays.length) return;
 
     savedReplays.forEach((filename) => localStorage.removeItem(filename));
     this.currOps = [[]];
@@ -180,7 +180,6 @@ class RecorderView extends React.Component {
 
   handleUploadReplay = (event) => {
       const files = event.target.files;
-      if (!files) return;
 
       Array.from(files).forEach((file) => {
         const reader = new FileReader();
@@ -215,7 +214,7 @@ class RecorderView extends React.Component {
   };
 
   startPlayback = () => {
-    if (this.state.telemetryReplay.length == 0) return;
+    if (!this.state.telemetryReplay.length) return;
 
     let lastIndex = new Array(this.state.telemetryReplay.length).fill(0);
     let playbackComplete = false;
@@ -268,7 +267,7 @@ class RecorderView extends React.Component {
   }
 
   compareOverlays = (prevOverlay, currentOverlay) => {
-    return JSON.stringify(currentOverlay.ops) !== JSON.stringify(prevOverlay.ops);
+    return JSON.stringify(currentOverlay.ops) != JSON.stringify(prevOverlay.ops);
   };
 
   componentDidUpdate(prevProps) {
@@ -295,8 +294,8 @@ class RecorderView extends React.Component {
       { ops: [] }
     );
 
-    if (this.compareOverlays(prevOverlay, overlay)) {
-      if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
+    if (this.props.activeOpModeStatus === OpModeStatus.INIT && !this.isRunning) {
+        if (this.compareOverlays(prevOverlay, overlay)) {
         this.isRunning = true;
         this.telemetryRecordingWriteIndex = 0;
         this.props.setReplayOverlay([]);
@@ -346,7 +345,7 @@ class RecorderView extends React.Component {
         { ops: [] }
       );
       const currOpsStr = JSON.stringify(this.currOps);
-      if (replayOps.ops.length == 0 && currOpsStr !== JSON.stringify(replayOps.ops) && currOpsStr.length > 0) {
+      if (!replayOps.ops.length && currOpsStr != JSON.stringify(replayOps.ops) && currOpsStr.length > 0) {
         this.props.setReplayOverlay(this.currOps);
       }
     }
@@ -507,7 +506,7 @@ class RecorderView extends React.Component {
 
             <button
               onClick={this.handleDeleteAllReplays}
-              disabled={this.state.savedReplays.length == 0}
+              disabled={!this.state.savedReplays.length}
               style={{
                 padding: '0.5em 1em',
                 backgroundColor: this.state.savedReplays.length > 0 ? '#d9534f' : '#ccc',
