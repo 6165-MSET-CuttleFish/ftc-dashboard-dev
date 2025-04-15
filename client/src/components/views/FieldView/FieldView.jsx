@@ -45,10 +45,7 @@ class FieldView extends React.Component {
 
     this.field.setOverlay({
       ...this.overlay,
-      ops: [
-        ...this.overlay.ops,
-        ...replayOps,
-      ],
+      ops: [...this.overlay.ops, ...replayOps],
     });
     this.renderField();
   }
