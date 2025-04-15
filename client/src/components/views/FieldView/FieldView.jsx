@@ -25,7 +25,11 @@ class FieldView extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.telemetry === prevProps.telemetry && this.props.replay === prevProps.replay) return;
+    if (
+      this.props.telemetry === prevProps.telemetry &&
+      this.props.replay === prevProps.replay
+    )
+      return;
 
     const replayOps = this.props.replay.ops;
 
@@ -34,18 +38,12 @@ class FieldView extends React.Component {
         fieldOverlay.ops.length === 0 && replayOps.length === 0
           ? acc
           : {
-              ops: [
-                ...field.ops,
-                ...fieldOverlay.ops,
-              ],
+              ops: [...field.ops, ...fieldOverlay.ops],
             },
       this.overlay,
     );
 
-    this.overlay.ops = [
-       ...this.overlay.ops,
-       ...replayOps,
-     ];
+    this.overlay.ops = [...this.overlay.ops, ...replayOps];
 
     this.field.setOverlay(this.overlay);
     this.renderField();
