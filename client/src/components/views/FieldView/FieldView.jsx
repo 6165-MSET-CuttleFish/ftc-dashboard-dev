@@ -35,7 +35,7 @@ class FieldView extends React.Component {
 
     this.overlay = this.props.telemetry.reduce(
       (acc, { field, fieldOverlay }) =>
-        fieldOverlay.ops.length === 0 && replayOps.length === 0
+        fieldOverlay.ops.length === 0
           ? acc
           : {
               ops: [...field.ops, ...fieldOverlay.ops],
@@ -43,9 +43,13 @@ class FieldView extends React.Component {
       this.overlay,
     );
 
-    this.overlay.ops = [...this.overlay.ops, ...replayOps];
-
-    this.field.setOverlay(this.overlay);
+    this.field.setOverlay({
+      ...this.overlay,
+      ops: [
+        ...this.overlay.ops,
+        ...replayOps,
+      ],
+    });
     this.renderField();
   }
 
