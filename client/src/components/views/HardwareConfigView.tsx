@@ -98,6 +98,7 @@ class HardwareConfigView extends Component<HardwareConfigViewProps, HardwareConf
       available,
       activeOpModeStatus,
       hardwareConfigList,
+      hardwareConfigFiles,
       activeOpMode,
     } = this.props;
 
@@ -161,6 +162,17 @@ class HardwareConfigView extends Component<HardwareConfigViewProps, HardwareConf
             )}
           </select>
           {this.renderButtons()}
+
+
+
+          {this.state.selectedHardwareConfig && hardwareConfigFiles?.[hardwareConfigList.indexOf(this.state.selectedHardwareConfig)] && (
+            <div className="mt-4 rounded bg-gray-100 p-3 text-sm dark:bg-slate-800 dark:text-slate-200">
+              <h4 className="mb-2 font-semibold">Selected Config Details:</h4>
+              <pre className="whitespace-pre-wrap break-words">
+                {hardwareConfigFiles[hardwareConfigList.indexOf(this.state.selectedHardwareConfig)]}
+              </pre>
+            </div>
+          )}
         </BaseViewBody>
       </BaseView>
     );

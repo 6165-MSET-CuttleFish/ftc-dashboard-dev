@@ -1,5 +1,9 @@
 package com.acmerobotics.dashboard;
 
+import java.io.FileNotFoundException;
+import org.xmlpull.v1.XmlPullParserException;
+
+
 // reentrant
 public final class Mutex<T> {
     private final T obj;
@@ -13,7 +17,7 @@ public final class Mutex<T> {
     }
 
     public interface UnitFun<T> {
-        void apply(T obj);
+        void apply(T obj) throws FileNotFoundException, XmlPullParserException;
     }
 
     // There's no guarantee against obj leaking, though any such occurrences will stand out.
@@ -22,6 +26,8 @@ public final class Mutex<T> {
     }
 
     public synchronized void with(UnitFun<T> f) {
-        f.apply(obj);
+        try {
+            f.apply(obj);
+        } catch (FileNotFoundException | XmlPullParserException e) {}
     }
 }

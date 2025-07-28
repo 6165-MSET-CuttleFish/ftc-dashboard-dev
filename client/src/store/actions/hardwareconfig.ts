@@ -7,10 +7,12 @@ export const setHardwareConfig = (hardwareConfigName: string): SetHardwareConfig
 
 export const receiveHardwareConfigList = (
     hardwareConfigList: string[],
+    hardwareConfigFiles: string[],
     currentHardwareConfig: string,
 ): ReceiveHardwareConfigListAction => ({
     type: RECEIVE_HARDWARE_CONFIG_LIST,
     hardwareConfigList,
+    hardwareConfigFiles,
     currentHardwareConfig,
 }
 )

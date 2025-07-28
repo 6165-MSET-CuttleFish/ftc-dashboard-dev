@@ -50,6 +50,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -67,6 +68,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
+
 import org.firstinspires.ftc.ftccommon.external.OnCreate;
 import org.firstinspires.ftc.ftccommon.external.OnCreateEventLoop;
 import org.firstinspires.ftc.ftccommon.external.OnCreateMenu;
@@ -85,6 +88,9 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.robotcore.internal.system.Misc;
 import org.firstinspires.ftc.robotcore.internal.webserver.WebHandler;
 import org.firstinspires.ftc.robotserver.internal.webserver.MimeTypesUtil;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
+import org.xmlpull.v1.XmlSerializer;
 
 /**
  * Main class for interacting with the instance.
@@ -284,12 +290,57 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                 for (RobotConfigFile file : hardwareConfigManager.getXMLFiles()){
                     l.put(file.getName(), file);
                 }
+                List<String> stringValues = new ArrayList<>();
+                for (RobotConfigFile value : l.values()) {
+                    stringValues.add(xmlPullParserToString(value.getXml()));
+                }
                 sendAll(new ReceiveHardwareConfigList(
                         new ArrayList<>(l.keySet()),
+                        new ArrayList<>(stringValues),
                         hardwareConfigManager.getActiveConfig().getName()
                 ));
             });
         }
+    }
+
+    public String xmlPullParserToString(XmlPullParser parser) {
+        StringWriter writer = new StringWriter();
+        try {
+            XmlSerializer serializer = XmlPullParserFactory.newInstance().newSerializer();
+            serializer.setOutput(writer);
+
+            int eventType = parser.getEventType();
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                switch (eventType) {
+                    case XmlPullParser.START_TAG:
+                        serializer.startTag(parser.getNamespace(), parser.getName());
+                        for (int i = 0; i < parser.getAttributeCount(); i++) {
+                            serializer.attribute(
+                                    parser.getAttributeNamespace(i),
+                                    parser.getAttributeName(i),
+                                    parser.getAttributeValue(i)
+                            );
+                        }
+                        break;
+
+                    case XmlPullParser.TEXT:
+                        serializer.text(parser.getText());
+                        break;
+
+                    case XmlPullParser.END_TAG:
+                        serializer.endTag(parser.getNamespace(), parser.getName());
+                        break;
+                }
+                eventType = parser.next();
+            }
+
+            serializer.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ""; // or return null / throw new RuntimeException(e);
+        }
+
+        return writer.toString();
     }
 
     /**
@@ -778,8 +829,13 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
             hardwareConfigList.with(l -> {
                 if (!l.isEmpty()){
+                    List<String> stringValues = new ArrayList<>();
+                    for (RobotConfigFile value : l.values()) {
+                        stringValues.add(xmlPullParserToString(value.getXml()));
+                    }
                     send(new ReceiveHardwareConfigList(
                             new ArrayList<>(l.keySet()),
+                            new ArrayList<>(stringValues),
                             hardwareConfigManager.getActiveConfig().getName())
                     );
                 }
