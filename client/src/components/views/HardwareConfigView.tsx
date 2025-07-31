@@ -11,10 +11,12 @@ import BaseView, {
 } from './BaseView';
 
 import { setHardwareConfig } from '@/store/actions/hardwareconfig';
+import { writeHardwareConfig } from '@/store/actions/hardwareconfig';
 import { STOP_OP_MODE_TAG } from '@/store/types';
 
 type HardwareConfigViewState = {
   selectedHardwareConfig: string;
+  editedConfigText: string;
 };
 
 const mapStateToProps = ({ status, hardwareConfig }: RootState) => ({
@@ -24,6 +26,7 @@ const mapStateToProps = ({ status, hardwareConfig }: RootState) => ({
 
 const mapDispatchToProps = {
   setHardwareConfig: (hardwareConfig: string) => setHardwareConfig(hardwareConfig),
+  writeHardwareConfig: (hardwareConfig: string, hardwareConfigContents: string) => writeHardwareConfig(hardwareConfig, hardwareConfigContents),
 };
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
@@ -51,22 +54,41 @@ class HardwareConfigView extends Component<HardwareConfigViewProps, HardwareConf
 
     this.state = {
       selectedHardwareConfig: '',
+      editedConfigText: '',
     };
 
     this.onChange = this.onChange.bind(this);
   }
 
   onChange(evt: ChangeEvent<HTMLSelectElement>) {
+    const selected = evt.target.value;
+    const index = this.props.hardwareConfigList.indexOf(selected);
+    const text = index !== -1 ? this.props.hardwareConfigFiles[index] : '';
     this.setState({
-      selectedHardwareConfig: evt.target.value,
+      selectedHardwareConfig: selected,
+      editedConfigText: text,
     });
   }
 
+
   componentDidUpdate(prevProps: Readonly<HardwareConfigViewProps>) {
-    if(prevProps.currentHardwareConfig !== this.props.currentHardwareConfig) {
-      this.setState({ selectedHardwareConfig: this.props.currentHardwareConfig });
+    if (prevProps.currentHardwareConfig !== this.props.currentHardwareConfig) {
+      const index = this.props.hardwareConfigList.indexOf(this.props.currentHardwareConfig);
+      const newText = index !== -1 ? this.props.hardwareConfigFiles[index] : '';
+      this.setState({
+        selectedHardwareConfig: this.props.currentHardwareConfig,
+        editedConfigText: newText,
+      });
+    }
+    // When selecting from dropdown
+    if (prevProps.hardwareConfigFiles !== this.props.hardwareConfigFiles && this.state.selectedHardwareConfig) {
+      const idx = this.props.hardwareConfigList.indexOf(this.state.selectedHardwareConfig);
+      if (idx !== -1) {
+        this.setState({ editedConfigText: this.props.hardwareConfigFiles[idx] });
+      }
     }
   }
+
 
   renderSetButton() {
     return (
@@ -83,13 +105,35 @@ class HardwareConfigView extends Component<HardwareConfigViewProps, HardwareConf
     );
   }
 
+  renderSaveButton() {
+    const { selectedHardwareConfig, editedConfigText } = this.state;
+    const save = (editedConfigText?.length ?? 0) !== 0 ? editedConfigText : "<Robot type=\"FirstInspires-FTC\">\n</Robot>"
+    return (
+      <ActionButton
+        className="
+          mt-2 border-green-400 bg-green-300 transition-colors
+          dark:border-transparent dark:bg-green-600 dark:text-white
+          dark:hover:border-green-400/80 dark:focus:bg-green-700
+        "
+        onClick={() => this.props.writeHardwareConfig(selectedHardwareConfig, save)}
+      >
+        Save
+      </ActionButton>
+    );
+  }
+
   renderButtons() {
     const { activeOpModeStatus, hardwareConfigList, activeOpMode } = this.props;
 
     if (hardwareConfigList.length === 0) {
       return null;
     } else if (activeOpModeStatus === OpModeStatus.STOPPED || activeOpMode === STOP_OP_MODE_TAG) {
-      return this.renderSetButton();
+      return (
+            <div className="flex flex-wrap items-center">
+              {this.renderSetButton()}
+              {this.renderSaveButton()}
+            </div>
+          );
     }
   }
 
@@ -168,9 +212,12 @@ class HardwareConfigView extends Component<HardwareConfigViewProps, HardwareConf
           {this.state.selectedHardwareConfig && hardwareConfigFiles?.[hardwareConfigList.indexOf(this.state.selectedHardwareConfig)] && (
             <div className="mt-4 rounded bg-gray-100 p-3 text-sm dark:bg-slate-800 dark:text-slate-200">
               <h4 className="mb-2 font-semibold">Selected Config Details:</h4>
-              <pre className="whitespace-pre-wrap break-words">
-                {hardwareConfigFiles[hardwareConfigList.indexOf(this.state.selectedHardwareConfig)]}
-              </pre>
+              <textarea
+                className="w-full rounded border bg-white p-2 font-mono text-xs shadow-inner dark:bg-slate-700 dark:text-slate-100"
+                rows={15}
+                value={this.state.editedConfigText}
+                onChange={(e) => this.setState({ editedConfigText: e.target.value })}
+              />
             </div>
           )}
         </BaseViewBody>

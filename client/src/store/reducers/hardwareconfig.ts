@@ -9,7 +9,7 @@ const initialState: HardwareConfigState = {
 
 const hardwareConfigReducer = (
     state = initialState,
-    action: 
+    action:
       | ReceiveHardwareConfigListAction,
 ) => {
     switch (action.type) {

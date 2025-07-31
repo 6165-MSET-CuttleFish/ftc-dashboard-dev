@@ -25,6 +25,7 @@ import com.acmerobotics.dashboard.message.redux.ReceiveImage;
 import com.acmerobotics.dashboard.message.redux.ReceiveOpModeList;
 import com.acmerobotics.dashboard.message.redux.ReceiveRobotStatus;
 import com.acmerobotics.dashboard.message.redux.SetHardwareConfig;
+import com.acmerobotics.dashboard.message.redux.WriteHardwareConfig;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.ftccommon.FtcEventLoop;
 import com.qualcomm.ftccommon.configuration.RobotConfigFile;
@@ -35,6 +36,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
+import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -48,6 +50,8 @@ import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoWSD;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -199,7 +203,7 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
 
     private NanoWSD server = new NanoWSD(8000) {
         @Override
-        protected NanoWSD.WebSocket openWebSocket(NanoHTTPD.IHTTPSession handshake) {
+        protected WebSocket openWebSocket(IHTTPSession handshake) {
             return new DashWebSocket(handshake);
         }
     };
@@ -300,6 +304,27 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                         hardwareConfigManager.getActiveConfig().getName()
                 ));
             });
+        }
+    }
+
+    public void writeRobotConfigFile(String name, String contents) {
+        File targetConfig = null;
+        boolean found = false;
+        for (RobotConfigFile file : hardwareConfigManager.getXMLFiles()) {
+            if (file.getName().equals(name)) {
+                targetConfig = file.getFullPath();
+                found = true;
+            }
+        }
+        if (!found) {
+            if (!AppUtil.CONFIG_FILES_DIR.exists()) {hardwareConfigManager.createConfigFolder();}
+            targetConfig = new File( AppUtil.CONFIG_FILES_DIR.getAbsolutePath(), name);
+        }
+
+        try (FileWriter writer = new FileWriter(targetConfig, false)) {
+            writer.write(contents);
+            writer.flush();
+        } catch (IOException e) {
         }
     }
 
@@ -885,6 +910,8 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                     break;
                 }
                 case SET_HARDWARE_CONFIG: {
+                    RobotLog.e("set called");
+
                     String hardwareConfigName = ((SetHardwareConfig) msg).getHardwareConfigName();
 
                     activeOpMode.with(o -> {
@@ -897,6 +924,49 @@ public class FtcDashboard implements OpModeManagerImpl.Notifications {
                        hardwareConfigList.with(l -> {
                            hardwareConfigManager.setActiveConfig(false, l.get(hardwareConfigName));
                        });
+
+                        // Soft-restart to allow the new config to take effect
+                        // This is admittedly pretty sketchy so we'll do it in a try/catch
+                        try {
+                            // We can't just cast this to FtcRobotControllerActivity because that would create a dependency
+                            Activity robotControllerActivity = AppUtil.getInstance().getRootActivity();
+                            // When called, this method has the ability to perform a restart
+                            Method selectedMethod = robotControllerActivity.getClass().getMethod("onOptionsItemSelected", MenuItem.class);
+
+                            int id = robotControllerActivity.getResources().getIdentifier("action_restart_robot", "id", "com.qualcomm.ftcrobotcontroller");
+
+                            // Spoofs the MenuItem parameter to imitate a restart button-press
+                            MenuItem item = (MenuItem) Proxy.newProxyInstance(
+                                    MenuItem.class.getClassLoader(),
+                                    new Class<?>[] { MenuItem.class },
+                                    (proxy, method, args) -> "getItemId".equals(method.getName()) ? id : null
+                            );
+
+                            selectedMethod.invoke(robotControllerActivity, item);
+                        } catch (Exception e){
+                            RobotLog.ww(TAG, "Something went wrong when reflecting to restart the robot.");
+                        }
+                    });
+                    break;
+                }
+                case WRITE_HARDWARE_CONFIG: {
+                    RobotLog.e("called");
+                    String hardwareConfigName = ((WriteHardwareConfig) msg).getHardwareConfigName();
+                    String hardwareConfigContents = ((WriteHardwareConfig) msg).getHardwareConfigContents();
+                    RobotLog.e(hardwareConfigContents);
+
+                    activeOpMode.with(o -> {
+                        // Don't allow changing the config unless stopped. Who knows what undefined behavior that would cause
+                        if(o.status != RobotStatus.OpModeStatus.STOPPED &&
+                                !opModeManager.getActiveOpModeName().equals(OpModeManager.DEFAULT_OP_MODE_NAME)) {
+                            return;
+                        }
+
+                        writeRobotConfigFile(hardwareConfigName, hardwareConfigContents);
+
+                        hardwareConfigList.with(l -> {
+                            hardwareConfigManager.setActiveConfig(false, l.get(hardwareConfigName));
+                        });
 
                         // Soft-restart to allow the new config to take effect
                         // This is admittedly pretty sketchy so we'll do it in a try/catch
